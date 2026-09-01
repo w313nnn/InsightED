@@ -62,7 +62,8 @@ The project uses feature branches for development.
 main
 ├── feature/misconception-detection
 ├── feature/backend-api
-└── feature/frontend-dashboard
+├── feature/frontend-dashboard
+└── feature/backend-web3
 ```
 
 Features should be developed, tested, and reviewed before being merged into `main`.
