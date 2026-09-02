@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from AI.gonka_client import detect_misconceptions
+from AI.gonka_client import detect_misconceptions, generate_quiz
 
 app = FastAPI()
 
@@ -21,6 +21,21 @@ def analyze(data: dict):
         question,
         correct_answer,
         student_answers
+    )
+
+    return result
+
+
+@app.post("/generate-quiz")
+def generate_quiz_endpoint(data: dict):
+    topic = data["topic"]
+    difficulty = data["difficulty"]
+    num_questions = data["num_questions"]
+
+    result = generate_quiz(
+        topic,
+        difficulty,
+        num_questions
     )
 
     return result
