@@ -1,5 +1,6 @@
 import streamlit as st
 import requests
+BACKEND_URL = "http://127.0.0.1:8001"
 
 
 def initialize_session_state():
@@ -62,18 +63,26 @@ def get_quiz_questions():
     return []
 
 
-def generate_quiz_from_backend():
+def load_teacher_quiz():
+    response = requests.get(f"{BACKEND_URL}/quiz", timeout=10)
+    response.raise_for_status()
+    quiz = response.json()
+    question = quiz.get("question")
+    correct_answer = quiz.get("correct_answer")
+
+    if not question or not correct_answer:
+        raise ValueError("A teacher-created quiz is not available yet.")
+
+    return [{"question": question, "options": [], "answer": correct_answer}]
+
+def submit_student_answers(answers):
     response = requests.post(
-        "http://127.0.0.1:8000/generate-quiz",
-        json={
-            "topic": st.session_state.topic,
-            "difficulty": st.session_state.difficulty,
-            "num_questions": st.session_state.num_questions,
-        },
-        timeout=180,
+        f"{BACKEND_URL}/student-answers",
+        json={"student_answers": answers},
+        timeout=10,
     )
     response.raise_for_status()
-    return response.json()["questions"]
+
 
 
 def generate_requiz_questions(exclude_indexes=None):
@@ -817,7 +826,7 @@ def render_start_screen():
         st.session_state.generated_questions = []
         try:
             with st.spinner("Generating your personalized quiz..."):
-                st.session_state.generated_questions = generate_quiz_from_backend()
+                st.session_state.generated_questions = load_teacher_quiz()
         except Exception as e:
             st.error(f"Quiz generation failed: {type(e).__name__}: {e}")
             st.stop()
@@ -891,17 +900,20 @@ def render_quiz_screen():
         is_requiz=st.session_state.get("is_requiz", False),
     )
 
-    selected_option = st.radio(
-        "Choose one answer:",
-        current_question["options"],
-        index=default_index if default_index is not None else None,
-        key=widget_key,
-        label_visibility="collapsed",
-        on_change=save_current_answer,
-        args=(st.session_state.question_index, widget_key),
-    )
+    if current_question["options"]:
+        selected_option = st.radio(
+            "Choose one answer:",
+            current_question["options"],
+            index=default_index if default_index is not None else None,
+            key=widget_key,
+            label_visibility="collapsed",
+            on_change=save_current_answer,
+            args=(st.session_state.question_index, widget_key),
+        )
+    else:
+        selected_option = st.text_input("Your answer", key=widget_key).strip()
 
-    if selected_option is not None:
+    if selected_option:
         st.session_state.answers[st.session_state.question_index] = selected_option
     elif st.session_state.answers.get(st.session_state.question_index) is not None:
         st.session_state.answers.pop(st.session_state.question_index, None)
@@ -934,6 +946,16 @@ def render_quiz_screen():
                 save_requiz_attempt()
             else:
                 save_first_attempt()
+                try:
+                    submit_student_answers(
+                        [
+                            st.session_state.first_quiz_answers[index]
+                            for index in range(len(st.session_state.first_quiz_questions))
+                        ]
+                    )
+                except requests.exceptions.RequestException as exc:
+                    st.error(f"Unable to submit your answers: {exc}")
+                    return
             st.session_state.quiz_submitted = True
             st.rerun()
 
