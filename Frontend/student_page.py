@@ -63,17 +63,52 @@ def get_quiz_questions():
     return []
 
 
-def load_teacher_quiz():
-    response = requests.get(f"{BACKEND_URL}/quiz", timeout=10)
+def generate_student_quiz():
+    response = requests.post(
+        f"{BACKEND_URL}/generate-quiz",
+        json={
+            "topic": st.session_state.topic,
+            "difficulty": st.session_state.difficulty,
+            "num_questions": st.session_state.num_questions,
+        },
+        timeout=60,
+    )
+
     response.raise_for_status()
-    quiz = response.json()
-    question = quiz.get("question")
-    correct_answer = quiz.get("correct_answer")
 
-    if not question or not correct_answer:
-        raise ValueError("A teacher-created quiz is not available yet.")
+    result = response.json()
+    questions = result.get("questions", [])
 
-    return [{"question": question, "options": [], "answer": correct_answer}]
+    if not questions:
+        raise ValueError("No questions were generated.")
+
+    if len(questions) != st.session_state.num_questions:
+        raise ValueError(
+            f"Expected {st.session_state.num_questions} questions, "
+            f"but received {len(questions)}."
+        )
+
+    for index, question in enumerate(questions, start=1):
+        if not question.get("question"):
+            raise ValueError(
+                f"Question {index} is missing question text."
+            )
+
+        options = question.get("options", [])
+        answer = question.get("answer")
+
+        if len(options) != 4:
+            raise ValueError(
+                f"Question {index} does not have exactly 4 options."
+            )
+
+        if answer not in options:
+            raise ValueError(
+                f"Question {index} has an answer "
+                f"that does not match its options."
+            )
+
+    return questions
 
 def submit_student_answers(answers):
     response = requests.post(
@@ -826,7 +861,7 @@ def render_start_screen():
         st.session_state.generated_questions = []
         try:
             with st.spinner("Generating your personalized quiz..."):
-                st.session_state.generated_questions = load_teacher_quiz()
+                st.session_state.generated_questions = generate_student_quiz()
         except Exception as e:
             st.error(f"Quiz generation failed: {type(e).__name__}: {e}")
             st.stop()
