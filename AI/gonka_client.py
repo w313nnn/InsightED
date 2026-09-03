@@ -115,7 +115,20 @@ Requirements:
         ]
     )
 
-    result = json.loads(response.choices[0].message.content)
+    content = response.choices[0].message.content
+
+    print("GONKA RAW RESPONSE:")
+    print(repr(content))
+
+    if not content or not content.strip():
+        raise ValueError("Gonka returned an empty response")
+
+    try:
+        result = json.loads(content)
+    except json.JSONDecodeError as e:
+        raise ValueError(
+            f"Gonka returned invalid JSON: {repr(content)}"
+        ) from e
 
     if "questions" not in result:
         raise ValueError("Invalid response: questions field is missing")
