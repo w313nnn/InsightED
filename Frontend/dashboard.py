@@ -1,4 +1,3 @@
-```python
 import streamlit as st
 import requests
 
@@ -7,7 +6,7 @@ import requests
 # CONFIGURATION
 # ============================================================
 
-BACKEND_URL = "http://localhost:8000"
+BACKEND_URL = "http://localhost:8001"
 
 
 # ============================================================
@@ -467,6 +466,11 @@ if st.button(
 
                 response = requests.post(
                     f"{BACKEND_URL}/analyze",
+                    json={
+                        "question": current_question,
+                        "correct_answer": current_correct_answer,
+                        "student_answers": student_answers,
+                    },
                     timeout=60
                 )
 
@@ -767,4 +771,3 @@ st.caption(
     "Education AI • Supporting teachers with "
     "AI-powered learning diagnosis"
 )
-```
