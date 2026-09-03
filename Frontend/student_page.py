@@ -2,115 +2,6 @@ import streamlit as st
 import requests
 
 
-QUESTIONS = [
-    {
-        "question": "What does HTML stand for?",
-        "options": [
-            "HyperText Markup Language",
-            "HighText Machine Language",
-            "Home Tool Markup Language",
-            "Hyper Transfer Markup Logic",
-        ],
-        "answer": "HyperText Markup Language",
-    },
-    {
-        "question": "Which language is used to style a web page?",
-        "options": ["HTML", "CSS", "Python", "SQL"],
-        "answer": "CSS",
-    },
-    {
-        "question": "What is the result of 7 * 6?",
-        "options": ["42", "36", "48", "54"],
-        "answer": "42",
-    },
-    {
-        "question": "Which planet is known as the Red Planet?",
-        "options": ["Venus", "Mars", "Jupiter", "Mercury"],
-        "answer": "Mars",
-    },
-    {
-        "question": "Which keyword is used to define a function in Python?",
-        "options": ["function", "def", "lambda", "class"],
-        "answer": "def",
-    },
-    {
-        "question": "Which tag is used to create a hyperlink in HTML?",
-        "options": ["<link>", "<a>", "<href>", "<url>"],
-        "answer": "<a>",
-    },
-    {
-        "question": "Which CSS property changes text color?",
-        "options": ["text-color", "font-color", "color", "background-color"],
-        "answer": "color",
-    },
-    {
-        "question": "What is the value of 9 + 5?",
-        "options": ["12", "13", "14", "15"],
-        "answer": "14",
-    },
-    {
-        "question": "Which planet is the largest in our solar system?",
-        "options": ["Earth", "Mars", "Saturn", "Jupiter"],
-        "answer": "Jupiter",
-    },
-    {
-        "question": "Which Python data type is used for true or false values?",
-        "options": ["int", "bool", "str", "list"],
-        "answer": "bool",
-    },
-    {
-        "question": "Which HTML element is used for the largest heading?",
-        "options": ["<h6>", "<h2>", "<h1>", "<header>"],
-        "answer": "<h1>",
-    },
-    {
-        "question": "Which CSS property controls the spacing inside an element?",
-        "options": ["padding", "margin", "border", "spacing"],
-        "answer": "padding",
-    },
-    {
-        "question": "What is 12 / 3?",
-        "options": ["3", "4", "6", "9"],
-        "answer": "4",
-    },
-    {
-        "question": "What is the capital city of France?",
-        "options": ["Rome", "Berlin", "Paris", "Madrid"],
-        "answer": "Paris",
-    },
-    {
-        "question": "Which Python keyword is used to create a loop?",
-        "options": ["if", "for", "while", "return"],
-        "answer": "for",
-    },
-    {
-        "question": "Which CSS property makes text bold?",
-        "options": ["font-style", "font-weight", "text-align", "line-height"],
-        "answer": "font-weight",
-    },
-    {
-        "question": "Which planet is closest to the Sun?",
-        "options": ["Earth", "Venus", "Mercury", "Mars"],
-        "answer": "Mercury",
-    },
-    {
-        "question": "Which Python function prints output to the console?",
-        "options": ["input()", "print()", "echo()", "write()"],
-        "answer": "print()",
-    },
-    {
-        "question": "Which HTML attribute defines the URL of a link?",
-        "options": ["src", "href", "link", "target"],
-        "answer": "href",
-    },
-    {
-        "question": "What is the result of 8 * 7?",
-        "options": ["48", "54", "56", "64"],
-        "answer": "56",
-    },
-]
-
-
 def initialize_session_state():
     defaults = {
         "started": False,
@@ -167,9 +58,8 @@ def get_quiz_questions():
         st.session_state.total_questions = len(generated_questions)
         return generated_questions
 
-    total_questions = min(max(5, int(st.session_state.get("num_questions", 5))), len(QUESTIONS))
-    st.session_state.total_questions = total_questions
-    return QUESTIONS[:total_questions]
+    st.session_state.total_questions = 0
+    return []
 
 
 def generate_quiz_from_backend():
@@ -180,7 +70,7 @@ def generate_quiz_from_backend():
             "difficulty": st.session_state.difficulty,
             "num_questions": st.session_state.num_questions,
         },
-        timeout=60,
+        timeout=180,
     )
     response.raise_for_status()
     return response.json()["questions"]
@@ -188,14 +78,18 @@ def generate_quiz_from_backend():
 
 def generate_requiz_questions(exclude_indexes=None):
     # TODO: Replace local Re-Quiz generation with backend/Gonka API
+    first_quiz_questions = list(st.session_state.get("first_quiz_questions", []))
     exclude_indexes = set(exclude_indexes or [])
-    target_count = min(max(5, int(st.session_state.get("num_questions", 5))), len(QUESTIONS))
+    target_count = min(
+        max(5, int(st.session_state.get("num_questions", 5))),
+        len(first_quiz_questions),
+    )
     weak_entries = list(st.session_state.get("first_quiz_incorrect_questions", []))
 
     weak_indexes = []
     for item in weak_entries:
         question_index = item.get("index")
-        if isinstance(question_index, int) and question_index < len(QUESTIONS):
+        if isinstance(question_index, int) and 0 <= question_index < len(first_quiz_questions):
             weak_indexes.append(question_index)
 
     selected_indexes = []
@@ -209,7 +103,7 @@ def generate_requiz_questions(exclude_indexes=None):
             break
 
     if len(selected_indexes) < target_count:
-        for index in range(len(QUESTIONS)):
+        for index in range(len(first_quiz_questions)):
             if index not in exclude_indexes and index not in seen:
                 seen.add(index)
                 selected_indexes.append(index)
@@ -217,14 +111,16 @@ def generate_requiz_questions(exclude_indexes=None):
                 break
 
     if len(selected_indexes) < target_count:
-        all_indexes = list(range(len(QUESTIONS)))
+        all_indexes = list(range(len(first_quiz_questions)))
         for index in all_indexes:
             if len(selected_indexes) >= target_count:
                 break
-            selected_indexes.append(index)
+            if index not in seen:
+                seen.add(index)
+                selected_indexes.append(index)
 
     selected_indexes = selected_indexes[:target_count]
-    selected_questions = [QUESTIONS[index] for index in selected_indexes]
+    selected_questions = [first_quiz_questions[index] for index in selected_indexes]
     st.session_state.requiz_questions = selected_questions
     return selected_questions
 
@@ -308,8 +204,9 @@ def start_requiz():
 
 def start_another_requiz():
     used_indexes = set(st.session_state.get("requiz_used_indexes", []))
+    first_quiz_questions = st.session_state.get("first_quiz_questions", [])
     for question in st.session_state.get("requiz_questions", []):
-        for index, source_question in enumerate(QUESTIONS):
+        for index, source_question in enumerate(first_quiz_questions):
             if source_question == question:
                 used_indexes.add(index)
                 break
@@ -917,13 +814,13 @@ def render_start_screen():
         st.session_state.topic = topic.strip() or "General Knowledge"
         st.session_state.difficulty = difficulty
         st.session_state.num_questions = int(num_questions)
+        st.session_state.generated_questions = []
         try:
             with st.spinner("Generating your personalized quiz..."):
                 st.session_state.generated_questions = generate_quiz_from_backend()
-        except requests.RequestException:
-            st.error("Unable to generate AI quiz. Using local questions instead.")
-            fallback_count = min(max(5, int(num_questions)), len(QUESTIONS))
-            st.session_state.generated_questions = QUESTIONS[:fallback_count]
+        except Exception as e:
+            st.error(f"Quiz generation failed: {type(e).__name__}: {e}")
+            st.stop()
         reset_quiz()
         st.session_state.started = True
         st.session_state.is_requiz = False
