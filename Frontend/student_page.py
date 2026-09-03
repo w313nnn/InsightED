@@ -28,6 +28,7 @@ def initialize_session_state():
         "requiz_used_indexes": [],
         "requiz_attempt": 0,
         "is_requiz": False,
+        "has_unfinished_quiz": False,
     }
 
     for key, value in defaults.items():
@@ -110,6 +111,7 @@ def generate_student_quiz():
 
     return questions
 
+
 def submit_student_answers(answers):
     response = requests.post(
         f"{BACKEND_URL}/student-answers",
@@ -176,12 +178,26 @@ def reset_quiz():
     st.session_state.quiz_submitted = False
 
 
+def save_and_exit_quiz():
+    st.session_state.has_unfinished_quiz = True
+    st.session_state.started = False
+    st.rerun()
+
+
+def continue_quiz():
+    st.session_state.started = True
+    st.rerun()
+
+
 def all_questions_answered():
     answers = st.session_state.get("answers", {})
-    return (
-        len(answers) == st.session_state.total_questions
-        and all(value is not None for value in answers.values())
-    )
+    total_questions = st.session_state.total_questions
+
+    for question_index in range(total_questions):
+        if question_index not in answers or answers[question_index] is None:
+            return False
+
+    return True
 
 
 def calculate_score(quiz_questions=None, answers=None):
@@ -292,6 +308,7 @@ def start_new_quiz():
         "requiz_attempt",
         "is_requiz",
         "started",
+        "has_unfinished_quiz",
     ]:
         st.session_state.pop(key, None)
 
@@ -602,10 +619,16 @@ def apply_custom_css():
             background: linear-gradient(180deg, #ffffff 0%, #f6fbff 100%);
             padding: 0.9rem 1rem;
             margin: 0;
-            color: var(--text);
+            color: #1f2937 !important;
             line-height: 1.6;
             transition: all 0.2s ease;
             cursor: pointer;
+        }
+
+        .stRadio label p,
+        .stRadio label span,
+        .stRadio label div {
+            color: #1f2937 !important;
         }
 
         .stRadio label:hover {
@@ -724,31 +747,79 @@ def apply_custom_css():
             filter: brightness(1.02);
         }
 
-        .stButton > button[kind="primary"] {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%);
-            color: #ffffff;
+        /* =========================================================
+        PRIMARY BUTTONS
+        Generate Quiz, Continue, Next, Submit
+        ========================================================= */
+
+        .stButton > button[kind="primary"],
+        .stButton > button[data-testid="baseButton-primary"],
+        div[data-testid="stFormSubmitButton"] button {
+            background-color: #4A9FC2 !important;
+            background: #4A9FC2 !important;
+            background-image: none !important;
+            color: #FFFFFF !important;
+            border: 1px solid #4A9FC2 !important;
             min-height: 3rem;
             font-size: 1rem;
-            border: none;
+            font-weight: 800;
+            box-shadow: none !important;
         }
 
-        .stButton > button[kind="secondary"] {
-            background: var(--panel-soft);
-            color: var(--text);
-            border: 1px solid rgba(125, 173, 201, 0.24);
-            box-shadow: none;
+        .stButton > button[kind="primary"] *,
+        .stButton > button[data-testid="baseButton-primary"] *,
+        div[data-testid="stFormSubmitButton"] button * {
+            color: #FFFFFF !important;
         }
 
-        .stTextInput > div > div > input,
-        .stSelectbox > div > div > select {
-            border-radius: 12px;
-            border: 1px solid rgba(125, 173, 201, 0.26);
-            background: var(--panel);
-            min-height: 3rem;
-            padding-left: 0.8rem;
-            color: var(--text);
-            box-shadow: none;
-            line-height: 1.5;
+        .stButton > button[kind="primary"]:hover,
+        .stButton > button[data-testid="baseButton-primary"]:hover,
+        div[data-testid="stFormSubmitButton"] button:hover {
+            background-color: #3688AD !important;
+            background: #3688AD !important;
+            background-image: none !important;
+            color: #FFFFFF !important;
+            border-color: #3688AD !important;
+        }
+
+
+        /* =========================================================
+        DIFFICULTY DROPDOWN
+        Easy / Medium / Hard
+        ========================================================= */
+
+        .stSelectbox div[data-baseweb="select"],
+        .stSelectbox div[data-baseweb="select"] > div,
+        .stSelectbox div[data-baseweb="select"] [role="combobox"] {
+            background-color: #D9F1FA !important;
+            background: #D9F1FA !important;
+            background-image: none !important;
+            color: #123047 !important;
+            border-color: #A7DDF2 !important;
+            box-shadow: none !important;
+        }
+
+        .stSelectbox div[data-baseweb="select"] *,
+        .stSelectbox div[data-baseweb="select"] [role="combobox"] * {
+            color: #123047 !important;
+        }
+
+
+        /* Dropdown menu */
+
+        div[data-baseweb="popover"] {
+            background-color: #FFFFFF !important;
+            background: #FFFFFF !important;
+        }
+
+        div[data-baseweb="popover"] li {
+            background-color: #FFFFFF !important;
+            color: #123047 !important;
+        }
+
+        div[data-baseweb="popover"] li:hover {
+            background-color: #D9F1FA !important;
+            color: #123047 !important;
         }
 
         .stTextInput label,
@@ -829,6 +900,22 @@ def apply_custom_css():
 
 def render_start_screen():
     st.markdown('<div class="page-shell">', unsafe_allow_html=True)
+
+    if st.session_state.get("has_unfinished_quiz", False):
+        st.info(
+            f"You have an unfinished {st.session_state.difficulty} quiz "
+            f"on {st.session_state.topic}."
+        )
+
+        if st.button(
+            "Continue Quiz",
+            use_container_width=True,
+            type="primary",
+        ):
+            continue_quiz()
+
+        st.markdown("---")
+
     st.markdown('<div class="section-tag">Learning Portal</div>', unsafe_allow_html=True)
     st.markdown('<div class="hero-title">Build Your <span class="accent-text">Practice Quiz</span></div>', unsafe_allow_html=True)
     st.markdown('<div class="hero-subtitle">Create a personalized quiz based on your learning goals and review your weak areas with targeted practice.</div>', unsafe_allow_html=True)
@@ -953,46 +1040,99 @@ def render_quiz_screen():
     elif st.session_state.answers.get(st.session_state.question_index) is not None:
         st.session_state.answers.pop(st.session_state.question_index, None)
 
-    answered_count = sum(1 for value in st.session_state.answers.values() if value is not None)
+    answered_count = sum(
+        1 for value in st.session_state.answers.values()
+        if value is not None
+    )
     st.caption(f"Answered: {answered_count}/{total_questions}")
 
-    col1, col2, col3 = st.columns([1, 1, 2])
+    question_index = st.session_state.question_index
 
-    with col1:
-        if st.button("Previous", disabled=st.session_state.question_index == 0, type="secondary"):
-            if st.session_state.question_index > 0:
+    # First question: Next only
+    if question_index == 0:
+        if st.button(
+            "Next",
+            use_container_width=True,
+            type="primary",
+            disabled=st.session_state.question_index not in st.session_state.answers,
+        ):
+            st.session_state.question_index += 1
+            st.rerun()
+
+    # Last question: Previous + Submit
+    elif question_index == total_questions - 1:
+        col1, col2 = st.columns(2)
+
+        with col1:
+            if st.button(
+                "Previous",
+                use_container_width=True,
+                type="secondary",
+            ):
                 st.session_state.question_index -= 1
                 st.rerun()
 
-    with col2:
-        if st.button(
-            "Next",
-            disabled=st.session_state.question_index == total_questions - 1,
-            type="primary",
-        ):
-            if st.session_state.question_index < total_questions - 1:
+        with col2:
+            submit_disabled = not all_questions_answered()
+
+            if st.button(
+                "Submit Quiz",
+                disabled=submit_disabled,
+                use_container_width=True,
+                type="primary",
+            ):
+                if st.session_state.get("is_requiz", False):
+                    save_requiz_attempt()
+                else:
+                    save_first_attempt()
+                    try:
+                        submit_student_answers(
+                            [
+                                st.session_state.first_quiz_answers[index]
+                                for index in range(
+                                    len(st.session_state.first_quiz_questions)
+                                )
+                            ]
+                        )
+                    except requests.exceptions.RequestException as exc:
+                        st.error(f"Unable to submit your answers: {exc}")
+                        return
+
+                st.session_state.quiz_submitted = True
+                st.rerun()
+
+    # Middle questions: Previous + Next
+    else:
+        col1, col2 = st.columns(2)
+
+        with col1:
+            if st.button(
+                "Previous",
+                use_container_width=True,
+                type="secondary",
+            ):
+                st.session_state.question_index -= 1
+                st.rerun()
+
+        with col2:
+            if st.button(
+                "Next",
+                use_container_width=True,
+                type="primary",
+                disabled=st.session_state.question_index not in st.session_state.answers,
+            ):
                 st.session_state.question_index += 1
                 st.rerun()
 
-    with col3:
-        submit_disabled = not all_questions_answered()
-        if st.button("Submit Quiz", disabled=submit_disabled, use_container_width=True, type="primary"):
-            if st.session_state.get("is_requiz", False):
-                save_requiz_attempt()
-            else:
-                save_first_attempt()
-                try:
-                    submit_student_answers(
-                        [
-                            st.session_state.first_quiz_answers[index]
-                            for index in range(len(st.session_state.first_quiz_questions))
-                        ]
-                    )
-                except requests.exceptions.RequestException as exc:
-                    st.error(f"Unable to submit your answers: {exc}")
-                    return
-            st.session_state.quiz_submitted = True
-            st.rerun()
+    # Save & Exit is available on every question
+    st.write("")
+
+    if st.button(
+        "Save & Exit Quiz",
+        use_container_width=True,
+        type="secondary",
+    ):
+        save_and_exit_quiz()
 
     st.markdown('</div>', unsafe_allow_html=True)
 
