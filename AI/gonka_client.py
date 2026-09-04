@@ -123,6 +123,16 @@ Requirements:
     if not content or not content.strip():
         raise ValueError("Gonka returned an empty response")
 
+    content = content.strip()
+
+    if "<think>" in content and "</think>" in content:
+        content = content.split("</think>", 1)[1].strip()
+
+    if content.startswith("```"):
+        content = content.replace("```json", "").strip()
+        content = content.replace("```", "", 1)
+        content = content.strip()
+
     try:
         result = json.loads(content)
     except json.JSONDecodeError as e:
