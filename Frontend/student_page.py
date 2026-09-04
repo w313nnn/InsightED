@@ -566,7 +566,11 @@ def apply_custom_css():
         .manual-progress-fill {
             height: 100%;
             border-radius: 999px;
-            background: linear-gradient(90deg, var(--primary) 0%, var(--primary-strong) 100%);
+            background: linear-gradient(
+                90deg,
+                var(--primary) 0%,
+                var(--primary-strong) 100%
+            );
         }
 
         .stProgress > div > div {
@@ -577,7 +581,11 @@ def apply_custom_css():
         }
 
         .stProgress > div > div > div {
-            background: linear-gradient(90deg, var(--primary) 0%, var(--primary-strong) 100%);
+            background: linear-gradient(
+                90deg,
+                var(--primary) 0%,
+                var(--primary-strong) 100%
+            );
             border-radius: 999px;
         }
 
@@ -616,7 +624,11 @@ def apply_custom_css():
             gap: 0.85rem;
             border: 1px solid rgba(125, 173, 201, 0.24);
             border-radius: 16px;
-            background: linear-gradient(180deg, #ffffff 0%, #f6fbff 100%);
+            background: linear-gradient(
+                180deg,
+                #ffffff 0%,
+                #f6fbff 100%
+            );
             padding: 0.9rem 1rem;
             margin: 0;
             color: #1f2937 !important;
@@ -733,24 +745,28 @@ def apply_custom_css():
             line-height: 1.5;
         }
 
-        .stButton > button {
-            border-radius: 12px;
-            border: 1px solid transparent;
-            font-weight: 800;
-            padding: 0.8rem 1.15rem;
-            transition: all 0.2s ease;
-            box-shadow: 0 12px 22px rgba(91, 172, 209, 0.12);
-        }
-
-        .stButton > button:hover {
-            transform: translateY(-1px);
-            filter: brightness(1.02);
-        }
 
         /* =========================================================
-        PRIMARY BUTTONS
-        Generate Quiz, Continue, Next, Submit
-        ========================================================= */
+           ALL BUTTONS
+           Light blue background + white text
+           ========================================================= */
+
+        .stButton > button {
+            border-radius: 12px !important;
+            border: 1px solid #4A9FC2 !important;
+            font-weight: 800 !important;
+            padding: 0.8rem 1.15rem !important;
+            min-height: 3rem !important;
+            font-size: 1rem !important;
+            transition: all 0.2s ease !important;
+            box-shadow: none !important;
+        }
+
+
+        /* =========================================================
+           PRIMARY BUTTONS
+           Generate Quiz / Continue / Next / Submit / Re-Quiz
+           ========================================================= */
 
         .stButton > button[kind="primary"],
         .stButton > button[data-testid="baseButton-primary"],
@@ -759,11 +775,7 @@ def apply_custom_css():
             background: #4A9FC2 !important;
             background-image: none !important;
             color: #FFFFFF !important;
-            border: 1px solid #4A9FC2 !important;
-            min-height: 3rem;
-            font-size: 1rem;
-            font-weight: 800;
-            box-shadow: none !important;
+            border-color: #4A9FC2 !important;
         }
 
         .stButton > button[kind="primary"] *,
@@ -772,21 +784,89 @@ def apply_custom_css():
             color: #FFFFFF !important;
         }
 
+
+        /* =========================================================
+           SECONDARY BUTTONS
+           Previous / Save & Exit / Start New Quiz
+           ========================================================= */
+
+        .stButton > button[kind="secondary"],
+        .stButton > button[data-testid="baseButton-secondary"] {
+            background-color: #4A9FC2 !important;
+            background: #4A9FC2 !important;
+            background-image: none !important;
+            color: #FFFFFF !important;
+            border-color: #4A9FC2 !important;
+        }
+
+        .stButton > button[kind="secondary"] *,
+        .stButton > button[data-testid="baseButton-secondary"] * {
+            color: #FFFFFF !important;
+        }
+
+
+        /* =========================================================
+           BUTTON HOVER
+           ========================================================= */
+
+        .stButton > button:hover,
         .stButton > button[kind="primary"]:hover,
+        .stButton > button[kind="secondary"]:hover,
         .stButton > button[data-testid="baseButton-primary"]:hover,
+        .stButton > button[data-testid="baseButton-secondary"]:hover,
         div[data-testid="stFormSubmitButton"] button:hover {
             background-color: #3688AD !important;
             background: #3688AD !important;
             background-image: none !important;
             color: #FFFFFF !important;
             border-color: #3688AD !important;
+            transform: translateY(-1px);
+        }
+
+        .stButton > button:hover *,
+        div[data-testid="stFormSubmitButton"] button:hover * {
+            color: #FFFFFF !important;
         }
 
 
         /* =========================================================
-        DIFFICULTY DROPDOWN
-        Easy / Medium / Hard
-        ========================================================= */
+           DISABLED BUTTONS
+           Still light blue, but visually disabled
+           ========================================================= */
+
+        .stButton > button:disabled,
+        div[data-testid="stFormSubmitButton"] button:disabled {
+            background-color: #B7DCE9 !important;
+            background: #B7DCE9 !important;
+            background-image: none !important;
+            color: #FFFFFF !important;
+            border-color: #B7DCE9 !important;
+            opacity: 0.75 !important;
+            cursor: not-allowed !important;
+            transform: none !important;
+        }
+
+        .stButton > button:disabled *,
+        div[data-testid="stFormSubmitButton"] button:disabled * {
+            color: #FFFFFF !important;
+        }
+
+
+        /* =========================================================
+           WARNING / ALERT TEXT
+           Makes yellow warning box readable
+           ========================================================= */
+
+        div[data-testid="stAlert"] p,
+        div[data-testid="stAlert"] span {
+            color: #5B4A00 !important;
+        }
+
+
+        /* =========================================================
+           DIFFICULTY DROPDOWN
+           Easy / Medium / Hard
+           ========================================================= */
 
         .stSelectbox div[data-baseweb="select"],
         .stSelectbox div[data-baseweb="select"] > div,
@@ -890,13 +970,11 @@ def apply_custom_css():
                 flex-direction: column;
                 align-items: flex-start;
             }
-
         }
         </style>
         """,
         unsafe_allow_html=True,
     )
-
 
 def render_start_screen():
     st.markdown('<div class="page-shell">', unsafe_allow_html=True)
