@@ -11,27 +11,38 @@ client = OpenAI(
 )
 
 
-def detect_misconceptions(question, correct_answer, student_answers):
+def detect_misconceptions(questions, student_answers):
     student_data = "\n".join(
-        f"Student {i + 1}: {answer}"
-        for i, answer in enumerate(student_answers)
+        f"Q{i + 1}: {question['question']}\n"
+        f"Correct answer: {question['answer']}\n"
+        f"Student answer: {student_answers[i]}"
+        for i, question in enumerate(questions)
     )
 
     prompt = f"""
 You are an educational AI assistant.
 
-Analyze the following student quiz responses.
+Analyze one student's responses to a multi-question quiz.
 
-Question:
-{question}
-
-Correct answer:
-{correct_answer}
-
-Student answers:
+Quiz responses:
 {student_data}
 
-Identify the main misconception among the students.
+Identify the student's main misconceptions based on the questions they answered incorrectly.
+
+Focus on:
+1. Which concepts the student misunderstood.
+2. WHY the student may have made those mistakes.
+3. What the teacher should explain or reinforce.
+
+Important:
+- Do not treat each question as a different student.
+- There is exactly ONE student.
+- The student answered {len(questions)} questions.
+- Only identify misconceptions from incorrect answers.
+- If the student has multiple incorrect answers involving different concepts, identify the most important misconception patterns.
+- "affected_students" should always be 1.
+- "total_students" should always be 1.
+- "percentage" should represent the percentage of this student's responses associated with the main misconception.
 
 Return ONLY valid JSON. Do not include markdown, explanations, or code fences.
 
@@ -39,11 +50,12 @@ Use exactly this structure:
 
 {{
   "misconception": "string",
-  "affected_students": 0,
-  "total_students": 0,
+  "affected_students": 1,
+  "total_students": 1,
   "percentage": 0,
   "reason": "string",
-  "intervention": "string"
+  "intervention": "string",
+  "teaching_explanation": "A clear explanation the teacher can use to explain the misunderstood concept to students."
 }}
 """
 
@@ -57,23 +69,79 @@ Use exactly this structure:
         ]
     )
 
-    return json.loads(response.choices[0].message.content)
+    content = response.choices[0].message.content
+
+    print("GONKA MISCONCEPTION RAW RESPONSE:")
+    print(repr(content))
+
+    if not content or not content.strip():
+        raise ValueError("Gonka returned an empty response")
+
+    content = content.strip()
+
+    if "<think>" in content and "</think>" in content:
+        content = content.split("</think>", 1)[1].strip()
+
+    if content.startswith("```"):
+        content = content.replace("```json", "").strip()
+        content = content.replace("```", "", 1).strip()
+
+    try:
+        result = json.loads(content)
+    except json.JSONDecodeError as e:
+        raise ValueError(
+            f"Gonka returned invalid JSON: {repr(content)}"
+        ) from e
+
+    required_fields = [
+        "misconception",
+        "affected_students",
+        "total_students",
+        "percentage",
+        "reason",
+        "intervention",
+        "teaching_explanation"
+    ]
+
+    for field in required_fields:
+        if field not in result:
+            raise ValueError(f"Invalid response: {field} field is missing")
+
+    return result
 
 
-def generate_quiz(topic, difficulty, num_questions):
+def generate_quiz(subject, topic, student_level, language, difficulty, num_questions):
     prompt = f"""
 You are an educational AI assistant.
 
 Generate quiz questions based on the following requirements.
 
+Subject:
+{subject}
+
 Topic:
 {topic}
+
+Student Level:
+{student_level}
+
+Language:
+{language}
 
 Difficulty:
 {difficulty}
 
 Number of questions:
 {num_questions}
+
+Important:
+- Generate all questions and answer options in {language}.
+- Questions must be appropriate for {student_level} students.
+- Questions must be about the topic "{topic}" within the subject "{subject}".
+- Questions must match the requested difficulty level.
+- Avoid content that is too advanced or too simple for the specified student level.
+- Avoid duplicate questions.
+- Use clear and age-appropriate language.
 
 Return ONLY valid JSON.
 Do not include markdown, explanations, or code fences.
@@ -100,7 +168,9 @@ Requirements:
 - Each question must have exactly 4 options.
 - Each question must have only one correct answer.
 - The answer must exactly match one of the options.
-- Questions must match the requested topic.
+- Questions must match the requested subject and topic.
+- Questions must match the requested student level.
+- Questions must match the requested language.
 - Questions must match the requested difficulty.
 - Avoid duplicate questions.
 """
@@ -179,25 +249,39 @@ Requirements:
 
 
 if __name__ == "__main__":
-    question = "What gas do plants absorb during photosynthesis?"
-    correct_answer = "Carbon dioxide"
+    questions = [
+        {
+            "question": "Which organelle in plant cells is responsible for carrying out photosynthesis?",
+            "answer": "Chloroplast"
+        },
+        {
+            "question": "What is the primary pigment in plants that absorbs light energy for photosynthesis?",
+            "answer": "Chlorophyll a"
+        },
+        {
+            "question": "In which part of the chloroplast do the light-dependent reactions take place?",
+            "answer": "Thylakoid membranes"
+        },
+        {
+            "question": "Which product of the light-dependent reactions is released as a gas?",
+            "answer": "O2"
+        },
+        {
+            "question": "During the Calvin cycle, carbon dioxide is initially converted into an organic molecule through which process?",
+            "answer": "Carbon fixation"
+        }
+    ]
 
     student_answers = [
-        "Carbon dioxide",
-        "Oxygen",
-        "Oxygen",
-        "Carbon dioxide",
-        "Oxygen",
-        "Carbon dioxide",
-        "Oxygen",
-        "Carbon dioxide",
-        "Oxygen",
-        "Carbon dioxide"
+        "Mitochondria",
+        "Chlorophyll a",
+        "Stroma",
+        "O2",
+        "Transpiration"
     ]
 
     result = detect_misconceptions(
-        question,
-        correct_answer,
+        questions,
         student_answers
     )
 
