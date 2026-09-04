@@ -16,6 +16,7 @@ def initialize_session_state():
         "num_questions": 5,
         "total_questions": 5,
         "generated_questions": [],
+        "quiz_id": None,
         "first_quiz_score": None,
         "first_quiz_percentage": None,
         "first_quiz_answers": {},
@@ -29,6 +30,8 @@ def initialize_session_state():
         "requiz_attempt": 0,
         "is_requiz": False,
         "has_unfinished_quiz": False,
+        "has_pending_requiz": False,
+        "student_page": "home",
     }
 
     for key, value in defaults.items():
@@ -64,20 +67,16 @@ def get_quiz_questions():
     return []
 
 
-def generate_student_quiz():
-    response = requests.post(
-        f"{BACKEND_URL}/generate-quiz",
-        json={
-            "topic": st.session_state.topic,
-            "difficulty": st.session_state.difficulty,
-            "num_questions": st.session_state.num_questions,
-        },
-        timeout=60,
+def get_assigned_quiz():
+    response = requests.get(
+        f"{BACKEND_URL}/quiz",
+        timeout=10,
     )
 
     response.raise_for_status()
 
     result = response.json()
+    st.session_state.quiz_id = result.get("id")
     questions = result.get("questions", [])
 
     if not questions:
@@ -112,12 +111,22 @@ def generate_student_quiz():
     return questions
 
 
-def submit_student_answers(answers):
+def submit_student_answers(
+    answers,
+    attempt_type="initial",
+    attempt_questions=None,
+):
     response = requests.post(
         f"{BACKEND_URL}/student-answers",
-        json={"student_answers": answers},
+        json={
+            "quiz_id": st.session_state.quiz_id,
+            "attempt_type": attempt_type,
+            "student_answers": answers,
+            "attempt_questions": attempt_questions,
+        },
         timeout=10,
     )
+
     response.raise_for_status()
 
 
@@ -180,6 +189,12 @@ def reset_quiz():
 
 def save_and_exit_quiz():
     st.session_state.has_unfinished_quiz = True
+    st.session_state.started = False
+    st.rerun()
+
+
+def save_requiz_for_later():
+    st.session_state.has_pending_requiz = True
     st.session_state.started = False
     st.rerun()
 
@@ -283,6 +298,14 @@ def start_another_requiz():
     st.rerun()
 
 
+def exit_requiz():
+    st.session_state.started = False
+    st.session_state.is_requiz = False
+    st.session_state.quiz_submitted = False
+    st.session_state.has_pending_requiz = True
+    st.rerun()
+
+
 def start_new_quiz():
     for key in [
         "question_index",
@@ -309,6 +332,7 @@ def start_new_quiz():
         "is_requiz",
         "started",
         "has_unfinished_quiz",
+        "has_pending_requiz",
     ]:
         st.session_state.pop(key, None)
 
@@ -932,6 +956,14 @@ def apply_custom_css():
             line-height: 1.5;
         }
 
+        .stMetric [data-testid="stMetricLabel"],
+        .stMetric [data-testid="stMetricLabel"] p,
+        .stMetric [data-testid="stMetricLabel"] div,
+        .stMetric [data-testid="stMetricLabel"] span {
+            color: var(--text) !important;
+            font-weight: 700 !important;
+        }
+
         .stMetric [data-testid="stMetricValue"] {
             color: var(--text);
             font-weight: 800;
@@ -976,75 +1008,672 @@ def apply_custom_css():
         unsafe_allow_html=True,
     )
 
-def render_start_screen():
+
+def render_learning_page():
     st.markdown('<div class="page-shell">', unsafe_allow_html=True)
 
-    if st.session_state.get("has_unfinished_quiz", False):
-        st.info(
-            f"You have an unfinished {st.session_state.difficulty} quiz "
-            f"on {st.session_state.topic}."
-        )
-
-        if st.button(
-            "Continue Quiz",
-            use_container_width=True,
-            type="primary",
-        ):
-            continue_quiz()
-
-        st.markdown("---")
-
-    st.markdown('<div class="section-tag">Learning Portal</div>', unsafe_allow_html=True)
-    st.markdown('<div class="hero-title">Build Your <span class="accent-text">Practice Quiz</span></div>', unsafe_allow_html=True)
-    st.markdown('<div class="hero-subtitle">Create a personalized quiz based on your learning goals and review your weak areas with targeted practice.</div>', unsafe_allow_html=True)
-
-    with st.form("quiz_form"):
-        topic = st.text_input("Topic", value=st.session_state.topic, label_visibility="visible")
-
-        col_left, col_right = st.columns(2)
-        with col_left:
-            difficulty = st.selectbox(
-                "Difficulty",
-                ["Easy", "Medium", "Hard"],
-                index=["Easy", "Medium", "Hard"].index(st.session_state.difficulty),
-            )
-        with col_right:
-            num_questions = st.slider(
-                "Number of Questions",
-                min_value=5,
-                max_value=20,
-                value=int(st.session_state.get("num_questions", 5)),
-                step=1,
-            )
-
-        submitted = st.form_submit_button("Generate Quiz", use_container_width=True)
-
-    if submitted:
-        st.session_state.topic = topic.strip() or "General Knowledge"
-        st.session_state.difficulty = difficulty
-        st.session_state.num_questions = int(num_questions)
-        st.session_state.generated_questions = []
-        try:
-            with st.spinner("Generating your personalized quiz..."):
-                st.session_state.generated_questions = generate_student_quiz()
-        except Exception as e:
-            st.error(f"Quiz generation failed: {type(e).__name__}: {e}")
-            st.stop()
-        reset_quiz()
-        st.session_state.started = True
-        st.session_state.is_requiz = False
-        st.rerun()
-
     st.markdown(
-        """
-        <div class="feature-row">
-            <div class="feature-tile"><strong>AI-Powered</strong><span>Smart, personalized study flow</span></div>
-            <div class="feature-tile"><strong>Track Progress</strong><span>Monitor improvement over time</span></div>
-            <div class="feature-tile"><strong>Learn &amp; Grow</strong><span>Practice with targeted review</span></div>
-        </div>
-        """,
+        '<div class="section-tag">Learn & Grow</div>',
         unsafe_allow_html=True,
     )
+
+    st.markdown(
+        '<div class="hero-title">Review Your <span class="accent-text">Weak Areas</span></div>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        '<div class="hero-subtitle">'
+        'Review the questions you found difficult and strengthen your understanding before trying the Re-Quiz.'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+    incorrect_questions = st.session_state.get(
+        "first_quiz_incorrect_questions",
+        []
+    )
+
+    if not st.session_state.get("first_quiz_questions"):
+        st.info(
+            "Complete your first quiz to see the areas where you need more practice."
+        )
+
+    elif not incorrect_questions:
+        st.success(
+            "Great job! You answered every question correctly in your first quiz."
+        )
+
+        st.subheader("Keep Learning")
+
+        st.write(
+            "You demonstrated strong understanding of the current topic. "
+            "You can still use the personalized Re-Quiz for extra practice."
+        )
+
+    else:
+        st.subheader("Topics to Review")
+
+        st.info(
+            f"You have {len(incorrect_questions)} question(s) to review."
+        )
+
+        for item in incorrect_questions:
+            question_index = item.get("index", 0)
+            question_text = item.get("question", "")
+            selected_answer = item.get("selected_answer")
+            correct_answer = item.get("correct_answer")
+
+            st.markdown(
+                f"""
+                <div class="review-item">
+                    <strong>Q{question_index + 1}:</strong> {question_text}<br>
+                    <span style="color: #EF4444;">
+                        Your answer: {selected_answer or 'No answer selected'}
+                    </span><br>
+                    <span style="color: #22C55E;">
+                        Correct answer: {correct_answer}
+                    </span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+        st.write("")
+
+        st.subheader("What You Should Do Next")
+
+        st.write(
+            "Review the questions above, focus on the concepts you found difficult, "
+            "and then take the personalized Re-Quiz to check your improvement."
+        )
+
+    st.write("")
+
+    if st.button(
+        "← Back to Learning Portal",
+        use_container_width=True,
+        type="secondary",
+    ):
+        st.session_state.student_page = "home"
+        st.rerun()
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+def render_progress_page():
+    st.markdown('<div class="page-shell">', unsafe_allow_html=True)
+
+    st.markdown(
+        '<div class="section-tag">Track Progress</div>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        '<div class="hero-title">Your <span class="accent-text">Learning Progress</span></div>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        '<div class="hero-subtitle">'
+        'See how your performance changes from your first quiz to your personalized Re-Quiz.'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+    first_percentage = st.session_state.get("first_quiz_percentage")
+    requiz_percentage = st.session_state.get("requiz_percentage")
+
+    if first_percentage is None:
+        st.info(
+            "You have not completed your first quiz yet. "
+            "Complete the assigned quiz to start tracking your progress."
+        )
+
+    else:
+        st.subheader("Performance")
+
+        if requiz_percentage is None:
+            col1, col2 = st.columns(2)
+
+            with col1:
+                st.metric(
+                    "First Quiz",
+                    f"{first_percentage}%"
+                )
+
+            with col2:
+                st.metric(
+                    "Re-Quiz",
+                    "Not completed"
+                )
+
+            st.info(
+                "Complete the personalized Re-Quiz to see your learning improvement."
+            )
+
+        else:
+            improvement = requiz_percentage - first_percentage
+
+            col1, col2, col3 = st.columns(3)
+
+            with col1:
+                st.metric(
+                    "First Quiz",
+                    f"{first_percentage}%"
+                )
+
+            with col2:
+                st.metric(
+                    "Re-Quiz",
+                    f"{requiz_percentage}%"
+                )
+
+            with col3:
+                st.metric(
+                    "Improvement",
+                    f"{improvement:+d}%"
+                )
+
+            if improvement > 0:
+                st.success(
+                    f"Great progress! Your score improved by {improvement}%."
+                )
+            elif improvement == 0:
+                st.info(
+                    "Your score stayed the same. Keep practicing."
+                )
+            else:
+                st.warning(
+                    f"Your score decreased by {abs(improvement)}%. "
+                    "Review your weak areas and try again."
+                )
+
+        st.divider()
+
+        st.subheader("Progress Summary")
+
+        if first_percentage >= 80:
+            st.write(
+                "You demonstrated strong understanding in your first quiz."
+            )
+        elif first_percentage >= 60:
+            st.write(
+                "You have a developing understanding of the topic."
+            )
+        else:
+            st.write(
+                "You have several areas that need more practice."
+            )
+
+    st.write("")
+
+    if st.button(
+        "← Back to Learning Portal",
+        use_container_width=True,
+        type="secondary",
+    ):
+        st.session_state.student_page = "home"
+        st.rerun()
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+def render_history_page():
+    st.markdown('<div class="page-shell">', unsafe_allow_html=True)
+
+    st.markdown(
+        '<div class="section-tag">Quiz History</div>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        '<div class="hero-title">Your <span class="accent-text">Quiz History</span></div>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        '<div class="hero-subtitle">'
+        'Review quizzes you have completed, including your answers, '
+        'scores, and previous attempts.'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+    try:
+        with st.spinner("Loading your quiz history..."):
+            quiz_response = requests.get(
+                f"{BACKEND_URL}/quizzes",
+                timeout=10,
+            )
+
+            quiz_response.raise_for_status()
+
+            quiz_data = quiz_response.json()
+            quizzes = quiz_data.get("quizzes", [])
+
+        completed_quizzes = []
+
+        for quiz in quizzes:
+            quiz_id = quiz.get("id")
+
+            if quiz_id is None:
+                continue
+
+            history_response = requests.get(
+                f"{BACKEND_URL}/quiz/{quiz_id}/history",
+                timeout=10,
+            )
+
+            history_response.raise_for_status()
+
+            history_data = history_response.json()
+
+            attempts = history_data.get("attempts", [])
+
+            # Only show quizzes that the student has completed.
+            if attempts:
+                completed_quizzes.append(history_data)
+
+        if not completed_quizzes:
+            st.info(
+                "You have not completed any quizzes yet. "
+                "Complete a quiz to see it here."
+            )
+
+        else:
+            st.success(
+                f"✅ {len(completed_quizzes)} completed quiz(es) found."
+            )
+
+            for history in completed_quizzes:
+                quiz = history.get("quiz", {})
+                attempts = history.get("attempts", [])
+
+                quiz_id = quiz.get("id")
+                subject = quiz.get("subject", "Unknown")
+                topic = quiz.get("topic", "Unknown")
+                student_level = quiz.get(
+                    "student_level",
+                    "Unknown",
+                )
+                language = quiz.get(
+                    "language",
+                    "Unknown",
+                )
+                difficulty = quiz.get(
+                    "difficulty",
+                    "Unknown",
+                )
+                questions = quiz.get("questions", [])
+
+                st.divider()
+
+                st.subheader(
+                    f"Quiz #{quiz_id} — {topic}"
+                )
+
+                col1, col2, col3, col4 = st.columns(4)
+
+                with col1:
+                    st.metric(
+                        "Subject",
+                        subject,
+                    )
+
+                with col2:
+                    st.metric(
+                        "Level",
+                        student_level,
+                    )
+
+                with col3:
+                    st.metric(
+                        "Difficulty",
+                        difficulty,
+                    )
+
+                with col4:
+                    st.metric(
+                        "Questions",
+                        len(questions),
+                    )
+
+                st.caption(
+                    f"Language: {language}"
+                )
+
+                st.markdown("### Your Attempts")
+
+                # Sort oldest to newest so initial attempt
+                # appears before re-quiz.
+                sorted_attempts = sorted(
+                    attempts,
+                    key=lambda attempt: attempt.get(
+                        "submitted_at",
+                        "",
+                    ),
+                )
+
+                for attempt_number, attempt in enumerate(
+                    sorted_attempts,
+                    start=1,
+                ):
+                    score = attempt.get(
+                        "score",
+                        0,
+                    )
+
+                    total_questions = attempt.get(
+                        "total_questions",
+                        len(questions),
+                    )
+
+                    if total_questions > 0:
+                        percentage = round(
+                            (score / total_questions) * 100
+                        )
+                    else:
+                        percentage = 0
+
+                    attempt_type = attempt.get(
+                        "attempt_type",
+                        "Unknown",
+                    )
+
+                    submitted_at = attempt.get(
+                        "submitted_at",
+                        "Unknown",
+                    )
+
+                    student_answers = attempt.get(
+                        "student_answers",
+                        [],
+                    )
+
+                    attempt_label = (
+                        "First Attempt"
+                        if attempt_type == "initial"
+                        else "Re-Quiz"
+                    )
+
+                    with st.expander(
+                        f"{attempt_label} — "
+                        f"{score}/{total_questions} "
+                        f"({percentage}%)"
+                    ):
+                        st.write(
+                            f"**Attempt:** {attempt_label}"
+                        )
+
+                        st.write(
+                            f"**Score:** "
+                            f"{score}/{total_questions}"
+                        )
+
+                        st.write(
+                            f"**Percentage:** "
+                            f"{percentage}%"
+                        )
+
+                        st.write(
+                            f"**Completed:** "
+                            f"{submitted_at}"
+                        )
+
+                        st.markdown(
+                            "#### Answer Review"
+                        )
+
+                        attempt_questions = (
+                            attempt.get("attempt_questions")
+                            or questions
+                        )
+
+                        for index, question in enumerate(
+                            attempt_questions
+                        ):
+                            student_answer = (
+                                student_answers[index]
+                                if index < len(student_answers)
+                                else None
+                            )
+
+                            correct_answer = question.get(
+                                "answer",
+                                "",
+                            )
+
+                            is_correct = (
+                                student_answer
+                                == correct_answer
+                            )
+
+                            if is_correct:
+                                answer_color = "#22C55E"
+                            else:
+                                answer_color = "#EF4444"
+
+                            st.markdown(
+                                f"""
+                                <div class="review-item">
+                                    <strong>
+                                        Q{index + 1}:
+                                    </strong>
+                                    {question.get("question", "")}
+                                    <br>
+                                    <span style="color: {answer_color};">
+                                        Your answer:
+                                        {student_answer or "No answer selected"}
+                                    </span>
+                                    <br>
+                                    <span style="color: #6B7280;">
+                                        Correct answer:
+                                        {correct_answer}
+                                    </span>
+                                </div>
+                                """,
+                                unsafe_allow_html=True,
+                            )
+
+                analysis = history.get(
+                    "analysis"
+                )
+
+                if analysis:
+                    analysis_result = analysis.get(
+                        "result",
+                        {}
+                    )
+
+                    st.markdown(
+                        "### AI Learning Feedback"
+                    )
+
+                    st.write(
+                        "**Common Misconception:** "
+                        f"{analysis_result.get('misconception', 'Not available')}"
+                    )
+
+                    st.write(
+                        "**Root Cause:** "
+                        f"{analysis_result.get('reason', 'Not available')}"
+                    )
+
+                    st.write(
+                        "**Recommended Teaching Action:** "
+                        f"{analysis_result.get('intervention', 'Not available')}"
+                    )
+
+                    st.write(
+                        "**Teaching Explanation:** "
+                        f"{analysis_result.get('teaching_explanation', 'Not available')}"
+                    )
+
+                else:
+                    st.info(
+                        "No AI learning analysis is available "
+                        "for this quiz yet."
+                    )
+
+    except requests.exceptions.ConnectionError:
+        st.error(
+            "❌ Cannot connect to the backend."
+        )
+
+    except requests.exceptions.RequestException as exc:
+        st.error(
+            f"❌ Unable to load quiz history: {exc}"
+        )
+
+    st.write("")
+
+    if st.button(
+        "← Back to Learning Portal",
+        use_container_width=True,
+        type="secondary",
+    ):
+        st.session_state.student_page = "home"
+        st.rerun()
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+def render_start_screen():
+    if st.session_state.get("student_page") == "progress":
+        render_progress_page()
+        return
+
+    if st.session_state.get("student_page") == "learning":
+        render_learning_page()
+        return
+
+    if st.session_state.get("student_page") == "history":
+        render_history_page()
+        return
+
+    st.markdown('<div class="page-shell">', unsafe_allow_html=True)
+
+    st.markdown(
+        '<div class="section-tag">Learning Portal</div>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        '<div class="hero-title">Your <span class="accent-text">Assigned Quiz</span></div>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        '<div class="hero-subtitle">'
+        'Complete the quiz assigned by your teacher and discover the areas '
+        'where you can improve.'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+    try:
+        with st.spinner("Loading your assigned quiz..."):
+            assigned_questions = get_assigned_quiz()
+
+        st.session_state.generated_questions = assigned_questions
+        st.session_state.total_questions = len(assigned_questions)
+
+        st.success(
+            f"✅ Your teacher has assigned a {len(assigned_questions)}-question quiz."
+        )
+
+        if st.session_state.get("has_pending_requiz", False):
+            st.info(
+                "A personalized Re-Quiz is available based on your previous answers."
+            )
+
+            if st.button(
+                "Start Personalized Re-Quiz",
+                use_container_width=True,
+                type="primary",
+            ):
+                st.session_state.has_pending_requiz = False
+                start_requiz()
+
+        else:
+            if st.button(
+                "Start Assigned Quiz",
+                use_container_width=True,
+                type="primary",
+            ):
+                reset_quiz()
+                st.session_state.started = True
+                st.session_state.is_requiz = False
+                st.rerun()
+
+    except requests.exceptions.ConnectionError:
+        st.error("❌ Cannot connect to the backend.")
+        st.info(
+            "Please make sure FastAPI is running using:\n\n"
+            "`uvicorn Backend.main:app --reload`"
+        )
+
+    except requests.exceptions.RequestException as exc:
+        st.error(f"❌ Unable to load the assigned quiz: {exc}")
+
+    except ValueError as exc:
+        st.warning(f"⚠️ {exc}")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    st.subheader("Your Learning")
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        if st.button(
+            "Teacher Assigned",
+            use_container_width=True,
+            type="secondary",
+        ):
+            st.session_state.student_page = "home"
+            st.session_state.has_pending_requiz = False
+            reset_quiz()
+            st.session_state.is_requiz = False
+            st.session_state.started = True
+            st.rerun()
+
+        st.caption("Take the quiz prepared for your class.")
+
+    with col2:
+        if st.button(
+            "Track Progress",
+            use_container_width=True,
+            type="secondary",
+        ):
+            st.session_state.student_page = "progress"
+            st.rerun()
+
+        st.caption("Monitor your learning improvement.")
+
+    with col3:
+        if st.button(
+            "Learn & Grow",
+            use_container_width=True,
+            type="secondary",
+        ):
+            st.session_state.student_page = "learning"
+            st.rerun()
+
+        st.caption("Review areas that need more practice.")
+
+    with col4:
+        if st.button(
+            "Quiz History",
+            use_container_width=True,
+            type="secondary",
+        ):
+            st.session_state.student_page = "history"
+            st.rerun()
+
+        st.caption("Review your completed quizzes and progress.")
+
     st.markdown('</div>', unsafe_allow_html=True)
 
 
@@ -1161,6 +1790,20 @@ def render_quiz_screen():
             ):
                 if st.session_state.get("is_requiz", False):
                     save_requiz_attempt()
+                    try:
+                        submit_student_answers(
+                            [
+                                st.session_state.requiz_answers[index]
+                                for index in range(
+                                    len(st.session_state.requiz_questions)
+                                )
+                            ],
+                            attempt_type="requiz",
+                            attempt_questions=st.session_state.requiz_questions,
+                        )
+                    except requests.exceptions.RequestException as exc:
+                        st.error(f"Unable to submit your re-quiz answers: {exc}")
+                        return
                 else:
                     save_first_attempt()
                     try:
@@ -1170,7 +1813,9 @@ def render_quiz_screen():
                                 for index in range(
                                     len(st.session_state.first_quiz_questions)
                                 )
-                            ]
+                            ],
+                            attempt_type="initial",
+                            attempt_questions=st.session_state.first_quiz_questions,
                         )
                     except requests.exceptions.RequestException as exc:
                         st.error(f"Unable to submit your answers: {exc}")
@@ -1274,8 +1919,24 @@ def render_result_screen():
         )
 
     st.write("")
-    if st.button("Start Personalized Re-Quiz", use_container_width=True, type="primary"):
-        start_requiz()
+
+    col_requiz, col_save = st.columns(2)
+
+    with col_save:
+        if st.button(
+            "Save Re-Quiz for Later",
+            use_container_width=True,
+            type="secondary",
+        ):
+            save_requiz_for_later()
+
+    with col_requiz:
+        if st.button(
+            "Start Personalized Re-Quiz",
+            use_container_width=True,
+            type="primary",
+        ):
+            start_requiz()
 
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -1323,13 +1984,32 @@ def render_requiz_result_screen():
 
     st.write("")
     st.write("")
-    col_try, col_new = st.columns(2)
+
+    col_try, col_new, col_exit = st.columns(3)
+
     with col_try:
-        if st.button("Try Another Re-Quiz", use_container_width=True, type="primary"):
+        if st.button(
+            "Try Another Re-Quiz",
+            use_container_width=True,
+            type="primary",
+        ):
             start_another_requiz()
+
     with col_new:
-        if st.button("Start New Quiz", use_container_width=True, type="secondary"):
+        if st.button(
+            "Start New Quiz",
+            use_container_width=True,
+            type="secondary",
+        ):
             start_new_quiz()
+
+    with col_exit:
+        if st.button(
+            "Exit",
+            use_container_width=True,
+            type="secondary",
+        ):
+            exit_requiz()
 
     st.markdown('</div>', unsafe_allow_html=True)
 
