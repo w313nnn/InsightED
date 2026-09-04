@@ -24,8 +24,13 @@ def create_quiz(data: dict):
         "correct_answer": data["correct_answer"]
     }
 
-    return current_quiz
+    global student_answers
+    student_answers = []
 
+    return {
+        "message": "Quiz created successfully.",
+        "quiz": current_quiz
+    }
 
 @app.get("/quiz")
 def get_quiz():
@@ -47,20 +52,33 @@ def submit_student_answers(data: dict):
 @app.get("/student-answers")
 def get_student_answers():
     return {
-        "student_answers": student_answers
+        "student_answers": student_answers,
+        "total_students": len(student_answers)
     }
 
 
 @app.post("/analyze")
-def analyze(data: dict):
-    question = data["question"]
-    correct_answer = data["correct_answer"]
-    student_answers_data = data["student_answers"]
+def analyze():
+
+    # Make sure a quiz exists
+    if not current_quiz:
+        return {
+            "error": "No quiz has been created yet."
+        }
+    
+    # Make sure student answers exist
+    if not student_answers:
+       return {
+           "error": "No student answers have been submitted yet." 
+       } 
+
+    question = current_quiz["question"]
+    correct_answer = current_quiz["correct_answer"]
 
     result = detect_misconceptions(
         question,
         correct_answer,
-        student_answers_data
+        student_answers
     )
 
     return result

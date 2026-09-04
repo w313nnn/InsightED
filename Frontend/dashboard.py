@@ -466,11 +466,6 @@ if st.button(
 
                 response = requests.post(
                     f"{BACKEND_URL}/analyze",
-                    json={
-                        "question": current_question,
-                        "correct_answer": current_correct_answer,
-                        "student_answers": student_answers,
-                    },
                     timeout=60
                 )
 
