@@ -1,73 +1,24 @@
 # MUBA2026
 
-MUBA2026 is an AI-powered educational prototype that helps educators identify common misconceptions in student responses and provides suggested teaching interventions.
+MUBA2026 is an AI-powered educational platform designed to help teachers identify student misconceptions and provide targeted learning support.
 
-## Project Structure
+Unlike traditional quiz systems that mainly report marks and correct/incorrect answers, MUBA2026 focuses on understanding **why students are making mistakes**. The system analyses student responses, identifies common misconceptions, summarizes class understanding, and provides recommended teaching interventions.
 
-```text
-MUBA2026/
-├── AI/
-├── Backend/
-├── Frontend/
-└── Docs/
-```
-
-## AI
-
-The current prototype uses **DeepSeek through Gonka Router**.
+The platform supports both teachers and students throughout the learning cycle:
 
 ```text
-Student Responses
-       ↓
-   AI Analysis
-       ↓
-Misconception + Reason
-       ↓
+Create Quiz
+    ↓
+Students Take Quiz
+    ↓
+Collect Student Responses
+    ↓
+AI Misconception Detection
+    ↓
+Class Understanding
+    ↓
 Teaching Intervention
-```
-
-The AI returns structured results including:
-
-* Misconception
-* Affected students
-* Percentage
-* Possible reason
-* Teaching intervention
-
-## Setup
-
-Install the required Python packages:
-
-```bash
-pip install openai python-dotenv
-```
-
-Create a `.env` file in the project root:
-
-```env
-GONKA_API_KEY=your_api_key_here
-```
-
-Run the AI prototype:
-
-```bash
-python AI/gonka_client.py
-```
-
-## Development
-
-The project uses feature branches for development.
-
-```text
-main
-├── feature/misconception-detection
-├── feature/backend-api
-├── feature/frontend-dashboard
-└── feature/backend-web3
-```
-
-Features should be developed, tested, and reviewed before being merged into `main`.
-
-## Status
-
-🚧 **Prototype / MVP Development**
+    ↓
+Personalized Re-Quiz
+    ↓
+Measure Learning Improvement
