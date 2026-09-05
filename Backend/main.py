@@ -1,12 +1,25 @@
+import json
+from datetime import datetime
+
 from fastapi import FastAPI
+
 from AI.gonka_client import detect_misconceptions, generate_quiz
+from Backend.database import get_connection, initialize_database
+
 
 app = FastAPI()
 
-# Temporary in-memory storage
-current_quiz = {}
-student_answers = []
 
+# ============================================================
+# DATABASE
+# ============================================================
+
+initialize_database()
+
+
+# ============================================================
+# HOME
+# ============================================================
 
 @app.get("/")
 def home():
@@ -15,65 +28,850 @@ def home():
     }
 
 
+# ============================================================
+# CREATE QUIZ
+# ============================================================
+
 @app.post("/quiz")
 def create_quiz(data: dict):
-    global current_quiz
 
-    current_quiz = {
-        "question": data["question"],
-        "correct_answer": data["correct_answer"]
+    questions = data["questions"]
+
+    # These fields will be supplied by the Teacher Dashboard.
+    # .get() keeps the endpoint temporarily compatible with
+    # the current frontend while we update it later.
+    subject = data.get("subject", "Unknown")
+    topic = data.get("topic", "Unknown")
+    student_level = data.get("student_level", "Unknown")
+    language = data.get("language", "Unknown")
+    difficulty = data.get("difficulty", "Unknown")
+    num_questions = data.get("num_questions", len(questions))
+
+    created_at = datetime.now().isoformat(timespec="seconds")
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    # IMPORTANT:
+    # Do NOT delete previous quizzes.
+    # Every new quiz is stored as a new record.
+
+    cursor.execute(
+        """
+        INSERT INTO quizzes (
+            subject,
+            topic,
+            student_level,
+            language,
+            difficulty,
+            num_questions,
+            questions,
+            created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            subject,
+            topic,
+            student_level,
+            language,
+            difficulty,
+            num_questions,
+            json.dumps(questions),
+            created_at
+        )
+    )
+
+    quiz_id = cursor.lastrowid
+
+    connection.commit()
+    connection.close()
+
+    return {
+        "message": "Quiz created successfully.",
+        "quiz_id": quiz_id,
+        "quiz": {
+            "id": quiz_id,
+            "subject": subject,
+            "topic": topic,
+            "student_level": student_level,
+            "language": language,
+            "difficulty": difficulty,
+            "num_questions": num_questions,
+            "questions": questions,
+            "created_at": created_at
+        }
     }
 
-    return current_quiz
 
+# ============================================================
+# GET CURRENT QUIZ
+# ============================================================
 
 @app.get("/quiz")
 def get_quiz():
-    return current_quiz
 
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            id,
+            subject,
+            topic,
+            student_level,
+            language,
+            difficulty,
+            num_questions,
+            questions,
+            created_at
+        FROM quizzes
+        ORDER BY id DESC
+        LIMIT 1
+        """
+    )
+
+    row = cursor.fetchone()
+
+    connection.close()
+
+    if not row:
+        return {}
+
+    return {
+        "id": row[0],
+        "subject": row[1],
+        "topic": row[2],
+        "student_level": row[3],
+        "language": row[4],
+        "difficulty": row[5],
+        "num_questions": row[6],
+        "questions": json.loads(row[7]),
+        "created_at": row[8]
+    }
+
+
+# ============================================================
+# GET QUIZ HISTORY
+# ============================================================
+
+@app.get("/quizzes")
+def get_quiz_history():
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            id,
+            subject,
+            topic,
+            student_level,
+            language,
+            difficulty,
+            num_questions,
+            questions,
+            created_at
+        FROM quizzes
+        ORDER BY id DESC
+        """
+    )
+
+    rows = cursor.fetchall()
+
+    connection.close()
+
+    quizzes = []
+
+    for row in rows:
+        quizzes.append({
+            "id": row[0],
+            "subject": row[1],
+            "topic": row[2],
+            "student_level": row[3],
+            "language": row[4],
+            "difficulty": row[5],
+            "num_questions": row[6],
+            "questions": json.loads(row[7]),
+            "created_at": row[8]
+        })
+
+    return {
+        "quizzes": quizzes
+    }
+
+
+# ============================================================
+# GET ONE QUIZ BY ID
+# ============================================================
+
+@app.get("/quiz/{quiz_id}/attempts")
+def get_quiz_attempts(quiz_id: int):
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            id,
+            quiz_id,
+            student_id,
+            answers,
+            questions,
+            score,
+            total_questions,
+            submitted_at,
+            attempt_type
+        FROM student_attempts
+        WHERE quiz_id = ?
+        ORDER BY id DESC
+        """,
+        (quiz_id,)
+    )
+
+    rows = cursor.fetchall()
+
+    connection.close()
+
+    attempts = []
+
+    for row in rows:
+
+        attempt_questions = []
+
+        if row[4]:
+            attempt_questions = json.loads(row[4])
+
+        attempts.append({
+            "attempt_id": row[0],
+            "quiz_id": row[1],
+            "student_id": row[2],
+            "student_answers": json.loads(row[3]),
+            "attempt_questions": attempt_questions,
+            "score": row[5],
+            "total_questions": row[6],
+            "submitted_at": row[7],
+            "attempt_type": row[8]
+        })
+
+    return {
+        "quiz_id": quiz_id,
+        "attempts": attempts
+    }
+
+
+# ============================================================
+# SUBMIT STUDENT ANSWERS
+# ============================================================
 
 @app.post("/student-answers")
 def submit_student_answers(data: dict):
-    global student_answers
 
-    student_answers = data["student_answers"]
+    answers = data["student_answers"]
+
+    # Identify which student submitted this attempt.
+    student_id = data.get("student_id", "student_1")
+
+    # Use the provided quiz_id if available.
+    quiz_id = data.get("quiz_id")
+
+    # Attempt type tells us whether this is the
+    # original quiz or a re-quiz.
+    attempt_type = data.get("attempt_type", "initial")
+
+    if attempt_type not in ["initial", "requiz"]:
+        return {
+            "error": "Invalid attempt type."
+        }
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+
+    # ------------------------------------------------
+    # Find quiz ID if it was not provided
+    # ------------------------------------------------
+
+    if quiz_id is None:
+
+        cursor.execute(
+            """
+            SELECT id
+            FROM quizzes
+            ORDER BY id DESC
+            LIMIT 1
+            """
+        )
+
+        quiz_row = cursor.fetchone()
+
+        if not quiz_row:
+            connection.close()
+
+            return {
+                "error": "No quiz has been created yet."
+            }
+
+        quiz_id = quiz_row[0]
+
+
+    # ------------------------------------------------
+    # Prevent duplicate first attempts for this student
+    # ------------------------------------------------
+
+    if attempt_type == "initial":
+
+        cursor.execute(
+            """
+            SELECT id
+            FROM student_attempts
+            WHERE quiz_id = ?
+            AND student_id = ?
+            AND attempt_type = 'initial'
+            LIMIT 1
+            """,
+            (quiz_id, student_id)
+        )
+
+        existing_initial_attempt = cursor.fetchone()
+
+        if existing_initial_attempt:
+            connection.close()
+
+            return {
+                "error": "A first attempt has already been submitted for this student for this quiz."
+            }
+
+
+    # ------------------------------------------------
+    # Get the original quiz
+    # ------------------------------------------------
+
+    cursor.execute(
+        """
+        SELECT id, questions
+        FROM quizzes
+        WHERE id = ?
+        """,
+        (quiz_id,)
+    )
+
+    quiz_row = cursor.fetchone()
+
+    if not quiz_row:
+        connection.close()
+
+        return {
+            "error": "Quiz not found."
+        }
+
+    original_questions = json.loads(quiz_row[1])
+
+    # ------------------------------------------------
+    # Determine which questions belong to this attempt
+    # ------------------------------------------------
+
+    if attempt_type == "requiz":
+
+        # Re-quiz questions are supplied by the Student Page.
+        attempt_questions = data.get("attempt_questions")
+
+        if not attempt_questions:
+            connection.close()
+
+            return {
+                "error": "Re-quiz questions were not provided."
+            }
+
+    else:
+
+        # Initial attempt uses the original quiz questions.
+        attempt_questions = original_questions
+
+    # ------------------------------------------------
+    # Calculate the student's score
+    # ------------------------------------------------
+
+    score = 0
+
+    for index, question in enumerate(attempt_questions):
+
+        if index >= len(answers):
+            continue
+
+        if answers[index] == question["answer"]:
+            score += 1
+
+    total_questions = len(attempt_questions)
+
+    submitted_at = datetime.now().isoformat(timespec="seconds")
+
+    # ------------------------------------------------
+    # Save the student attempt
+    # ------------------------------------------------
+
+    cursor.execute(
+        """
+        INSERT INTO student_attempts (
+            quiz_id,
+            student_id,
+            answers,
+            questions,
+            score,
+            total_questions,
+            submitted_at,
+            attempt_type
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            quiz_id,
+            student_id,
+            json.dumps(answers),
+            json.dumps(attempt_questions),
+            score,
+            total_questions,
+            submitted_at,
+            attempt_type
+        )
+    )
+
+    attempt_id = cursor.lastrowid
+
+    connection.commit()
+    connection.close()
 
     return {
         "message": "Student answers saved successfully.",
-        "student_answers": student_answers
+        "attempt_id": attempt_id,
+        "quiz_id": quiz_id,
+        "student_id": student_id,
+        "student_answers": answers,
+        "attempt_questions": attempt_questions,
+        "score": score,
+        "total_questions": total_questions,
+        "submitted_at": submitted_at,
+        "attempt_type": attempt_type
     }
 
+
+# ============================================================
+# GET STUDENT ANSWERS
+# ============================================================
 
 @app.get("/student-answers")
 def get_student_answers():
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    # Get the latest attempt for the latest quiz
+    cursor.execute(
+        """
+        SELECT
+            id,
+            quiz_id,
+            student_id,
+            answers,
+            score,
+            total_questions,
+            submitted_at,
+            attempt_type
+        FROM student_attempts
+        WHERE quiz_id = (
+            SELECT id
+            FROM quizzes
+            ORDER BY id DESC
+            LIMIT 1
+        )
+        ORDER BY id DESC
+        LIMIT 1
+        """
+    )
+
+    row = cursor.fetchone()
+
+    connection.close()
+
+    if not row:
+        return {
+            "student_answers": [],
+            "total_students": 0,
+            "attempt_id": None
+        }
+
     return {
-        "student_answers": student_answers
+        "student_answers": json.loads(row[3]),
+        "total_students": 1,
+        "attempt_id": row[0],
+        "quiz_id": row[1],
+        "student_id": row[2],
+        "score": row[4],
+        "total_questions": row[5],
+        "submitted_at": row[6],
+        "attempt_type": row[7]
     }
 
 
+# ============================================================
+# GET ALL ATTEMPTS FOR A QUIZ
+# ============================================================
+
+@app.get("/quiz/{quiz_id}/analysis")
+def get_quiz_analysis(quiz_id: int):
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            id,
+            quiz_id,
+            result,
+            created_at
+        FROM analyses
+        WHERE quiz_id = ?
+        ORDER BY id DESC
+        LIMIT 1
+        """,
+        (quiz_id,)
+    )
+
+    row = cursor.fetchone()
+
+    connection.close()
+
+    if not row:
+        return {}
+
+    return {
+        "id": row[0],
+        "quiz_id": row[1],
+        "result": json.loads(row[2]),
+        "created_at": row[3]
+    }
+
+
+# ============================================================
+# AI MISCONCEPTION ANALYSIS
+# ============================================================
+
 @app.post("/analyze")
 def analyze(data: dict):
-    question = data["question"]
-    correct_answer = data["correct_answer"]
-    student_answers_data = data["student_answers"]
+
+    quiz_id = data.get("quiz_id")
+
+    if quiz_id is None:
+        return {
+            "error": "Quiz ID is required."
+        }
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    # ------------------------------------------------
+    # Get the selected quiz
+    # ------------------------------------------------
+
+    cursor.execute(
+        """
+        SELECT id, questions
+        FROM quizzes
+        WHERE id = ?
+        """,
+        (quiz_id,)
+    )
+
+    quiz_row = cursor.fetchone()
+
+    if not quiz_row:
+        connection.close()
+
+        return {
+            "error": "Quiz not found."
+        }
+
+    current_questions = json.loads(quiz_row[1])
+
+    # ------------------------------------------------
+    # Get the initial student attempt for this quiz
+    # ------------------------------------------------
+
+    cursor.execute(
+        """
+        SELECT answers, questions
+        FROM student_attempts
+        WHERE quiz_id = ?
+        AND attempt_type = 'initial'
+        ORDER BY id ASC
+        LIMIT 1
+        """,
+        (quiz_id,)
+    )
+
+    answer_row = cursor.fetchone()
+
+    connection.close()
+
+    if not answer_row:
+        return {
+            "error": "No student answers have been submitted for this quiz yet."
+        }
+
+    current_student_answers = json.loads(answer_row[0])
+
+    if answer_row[1]:
+        analysis_questions = json.loads(answer_row[1])
+    else:
+        analysis_questions = current_questions
+
+    # ------------------------------------------------
+    # Send data to Gonka AI
+    # ------------------------------------------------
 
     result = detect_misconceptions(
-        question,
-        correct_answer,
-        student_answers_data
+        analysis_questions,
+        current_student_answers
     )
+
+    # ------------------------------------------------
+    # Save analysis under the selected quiz
+    # ------------------------------------------------
+
+    analysis_connection = get_connection()
+    analysis_cursor = analysis_connection.cursor()
+
+    created_at = datetime.now().isoformat(timespec="seconds")
+
+    analysis_cursor.execute(
+        """
+        INSERT INTO analyses (
+            quiz_id,
+            result,
+            created_at
+        )
+        VALUES (?, ?, ?)
+        """,
+        (
+            quiz_id,
+            json.dumps(result),
+            created_at
+        )
+    )
+
+    analysis_connection.commit()
+    analysis_connection.close()
+
+    # Include quiz ID so the frontend knows
+    # which quiz was analyzed.
+    result["quiz_id"] = quiz_id
 
     return result
 
 
+# ============================================================
+# GET SAVED AI ANALYSIS
+# ============================================================
+
+@app.get("/analysis")
+def get_analysis():
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT result
+        FROM analyses
+        ORDER BY id DESC
+        LIMIT 1
+        """
+    )
+
+    row = cursor.fetchone()
+
+    connection.close()
+
+    if not row:
+        return {}
+
+    return json.loads(row[0])
+
+
+# ============================================================
+# GET COMPLETE QUIZ HISTORY
+# ============================================================
+
+@app.get("/quiz/{quiz_id}/history")
+def get_quiz_history_details(quiz_id: int):
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    # ------------------------------------------------
+    # Get quiz information
+    # ------------------------------------------------
+
+    cursor.execute(
+        """
+        SELECT
+            id,
+            subject,
+            topic,
+            student_level,
+            language,
+            difficulty,
+            num_questions,
+            questions,
+            created_at
+        FROM quizzes
+        WHERE id = ?
+        """,
+        (quiz_id,)
+    )
+
+    quiz_row = cursor.fetchone()
+
+    if not quiz_row:
+
+        connection.close()
+
+        return {
+            "error": "Quiz not found."
+        }
+
+    # ------------------------------------------------
+    # Get all student attempts for this quiz
+    # ------------------------------------------------
+
+    cursor.execute(
+        """
+        SELECT
+            id,
+            quiz_id,
+            student_id,
+            answers,
+            questions,
+            score,
+            total_questions,
+            submitted_at,
+            attempt_type
+        FROM student_attempts
+        WHERE quiz_id = ?
+        ORDER BY id DESC
+        """,
+        (quiz_id,)
+    )
+
+    attempt_rows = cursor.fetchall()
+
+    # ------------------------------------------------
+    # Get latest AI analysis for this quiz
+    # ------------------------------------------------
+
+    cursor.execute(
+        """
+        SELECT
+            id,
+            quiz_id,
+            result,
+            created_at
+        FROM analyses
+        WHERE quiz_id = ?
+        ORDER BY id DESC
+        LIMIT 1
+        """,
+        (quiz_id,)
+    )
+
+    analysis_row = cursor.fetchone()
+
+    connection.close()
+
+    # ------------------------------------------------
+    # Format attempts
+    # ------------------------------------------------
+
+    attempts = []
+
+    for row in attempt_rows:
+
+        attempt_questions = []
+
+        if row[4]:
+            attempt_questions = json.loads(row[4])
+
+        attempts.append({
+            "attempt_id": row[0],
+            "quiz_id": row[1],
+            "student_id": row[2],
+            "student_answers": json.loads(row[3]),
+            "attempt_questions": attempt_questions,
+            "score": row[5],
+            "total_questions": row[6],
+            "submitted_at": row[7],
+            "attempt_type": row[8]
+        })
+
+    # ------------------------------------------------
+    # Format AI analysis
+    # ------------------------------------------------
+
+    analysis = None
+
+    if analysis_row:
+
+        analysis = {
+            "id": analysis_row[0],
+            "quiz_id": analysis_row[1],
+            "result": json.loads(analysis_row[2]),
+            "created_at": analysis_row[3]
+        }
+
+    # ------------------------------------------------
+    # Return complete quiz history
+    # ------------------------------------------------
+
+    return {
+        "quiz": {
+            "id": quiz_row[0],
+            "subject": quiz_row[1],
+            "topic": quiz_row[2],
+            "student_level": quiz_row[3],
+            "language": quiz_row[4],
+            "difficulty": quiz_row[5],
+            "num_questions": quiz_row[6],
+            "questions": json.loads(quiz_row[7]),
+            "created_at": quiz_row[8]
+        },
+        "attempts": attempts,
+        "analysis": analysis
+    }
+
+
+# ============================================================
+# GENERATE QUIZ WITH GONKA AI
+# ============================================================
+
 @app.post("/generate-quiz")
 def generate_quiz_endpoint(data: dict):
+
+    subject = data["subject"]
     topic = data["topic"]
+    student_level = data["student_level"]
+    language = data["language"]
     difficulty = data["difficulty"]
     num_questions = data["num_questions"]
 
     result = generate_quiz(
+        subject,
         topic,
+        student_level,
+        language,
         difficulty,
         num_questions
     )
