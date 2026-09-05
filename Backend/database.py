@@ -39,6 +39,7 @@ def initialize_database():
         CREATE TABLE IF NOT EXISTS student_attempts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             quiz_id INTEGER NOT NULL,
+            student_id TEXT NOT NULL,
             answers TEXT NOT NULL,
             questions TEXT,
             score INTEGER,
@@ -61,6 +62,12 @@ def initialize_database():
         cursor.execute("""
             ALTER TABLE student_attempts
             ADD COLUMN questions TEXT
+        """)
+
+    if "student_id" not in columns:
+        cursor.execute("""
+            ALTER TABLE student_attempts
+            ADD COLUMN student_id TEXT
         """)
 
     # ============================================================

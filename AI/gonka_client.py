@@ -5,10 +5,19 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-client = OpenAI(
+deepseek_client = OpenAI(
     api_key=os.getenv("GONKA_API_KEY"),
     base_url="https://api.gonkarouter.io/v1"
 )
+
+minimax_client = OpenAI(
+    api_key=os.getenv("GONKA_API_KEY"),
+    base_url="https://api.gonkarouter.io/v1",
+    timeout=60.0
+)
+
+DEEPSEEK_MODEL = "deepseek-ai/DeepSeek-V4-Flash-0731"
+MINIMAX_MODEL = "MiniMaxAI/MiniMax-M2.7"
 
 
 def detect_misconceptions(questions, student_answers):
@@ -43,6 +52,10 @@ Important:
 - "affected_students" should always be 1.
 - "total_students" should always be 1.
 - "percentage" should represent the percentage of this student's responses associated with the main misconception.
+- "supporting_questions" must contain the question numbers that provide evidence for the main misconception.
+- Only include questions the student answered incorrectly.
+- Use question numbers starting from 1.
+- If the main misconception is supported by Q1, Q3, and Q5, return [1, 3, 5].
 
 Return ONLY valid JSON. Do not include markdown, explanations, or code fences.
 
@@ -50,6 +63,7 @@ Use exactly this structure:
 
 {{
   "misconception": "string",
+  "supporting_questions": [1, 3, 5],
   "affected_students": 1,
   "total_students": 1,
   "percentage": 0,
@@ -59,55 +73,219 @@ Use exactly this structure:
 }}
 """
 
-    response = client.chat.completions.create(
-        model="deepseek-ai/DeepSeek-V4-Flash-0731",
-        messages=[
-            {
-                "role": "user",
-                "content": prompt
-            }
+    def analyze_with_model(client, model_name):
+        response = client.chat.completions.create(
+            model=model_name,
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
+        )
+
+        content = response.choices[0].message.content
+
+        print(f"GONKA {model_name} RAW RESPONSE:")
+        print(repr(content))
+
+        if not content or not content.strip():
+            raise ValueError(
+                f"{model_name} returned an empty response"
+            )
+
+        content = content.strip()
+
+        # Remove complete <think>...</think> sections.
+        if "<think>" in content:
+            if "</think>" in content:
+                content = content.split("</think>", 1)[1].strip()
+            else:
+                raise ValueError(
+                    f"{model_name} returned an incomplete "
+                    "<think> response without JSON."
+                )
+
+        # Remove markdown code fences if present.
+        if content.startswith("```"):
+            content = content.replace("```json", "", 1).strip()
+
+            if content.endswith("```"):
+                content = content[:-3].strip()
+
+        try:
+            result = json.loads(content)
+        except json.JSONDecodeError as e:
+            raise ValueError(
+                f"{model_name} returned invalid JSON: "
+                f"{repr(content)}"
+            ) from e
+
+        required_fields = [
+            "misconception",
+            "supporting_questions",
+            "affected_students",
+            "total_students",
+            "percentage",
+            "reason",
+            "intervention",
+            "teaching_explanation"
         ]
-    )
 
-    content = response.choices[0].message.content
+        for field in required_fields:
+            if field not in result:
+                raise ValueError(
+                    f"{model_name} response is missing: {field}"
+                )
 
-    print("GONKA MISCONCEPTION RAW RESPONSE:")
-    print(repr(content))
+        return result
 
-    if not content or not content.strip():
-        raise ValueError("Gonka returned an empty response")
+    # ============================================================
+    # RUN DEEPSEEK
+    # ============================================================
 
-    content = content.strip()
-
-    if "<think>" in content and "</think>" in content:
-        content = content.split("</think>", 1)[1].strip()
-
-    if content.startswith("```"):
-        content = content.replace("```json", "").strip()
-        content = content.replace("```", "", 1).strip()
+    deepseek_result = None
 
     try:
-        result = json.loads(content)
-    except json.JSONDecodeError as e:
-        raise ValueError(
-            f"Gonka returned invalid JSON: {repr(content)}"
-        ) from e
+        deepseek_result = analyze_with_model(
+            deepseek_client,
+            DEEPSEEK_MODEL
+        )
 
-    required_fields = [
-        "misconception",
-        "affected_students",
-        "total_students",
-        "percentage",
-        "reason",
-        "intervention",
-        "teaching_explanation"
+    except Exception as exc:
+        print(
+            f"DEEPSEEK ANALYSIS FAILED: {exc}"
+        )
+
+
+    # ============================================================
+    # RUN MINIMAX
+    # ============================================================
+
+    minimax_result = None
+
+    try:
+        minimax_result = analyze_with_model(
+            minimax_client,
+            MINIMAX_MODEL
+        )
+
+    except Exception as exc:
+        print(
+            f"MINIMAX ANALYSIS FAILED: {exc}"
+        )
+
+
+    # ============================================================
+    # CHECK MODEL RESULTS
+    # ============================================================
+
+    if deepseek_result is None and minimax_result is None:
+
+        raise ValueError(
+            "Both DeepSeek and MiniMax failed to return "
+            "a valid analysis."
+        )
+
+
+    # ============================================================
+    # BOTH MODELS SUCCEEDED
+    # ============================================================
+
+    if (
+        deepseek_result is not None
+        and minimax_result is not None
+    ):
+
+        print("DEEPSEEK ANALYSIS:")
+        print(deepseek_result)
+
+        print("MINIMAX ANALYSIS:")
+        print(minimax_result)
+
+        deepseek_questions = set(
+            deepseek_result["supporting_questions"]
+        )
+
+        minimax_questions = set(
+            minimax_result["supporting_questions"]
+        )
+
+        if deepseek_questions == minimax_questions:
+
+            consensus_status = (
+                "Consensus reached between DeepSeek and MiniMax "
+                "on the supporting questions for the main misconception."
+            )
+
+        else:
+
+            consensus_status = (
+                "DeepSeek and MiniMax identified different supporting "
+                "questions for the main misconception. DeepSeek analysis "
+                "was selected as the primary diagnosis."
+            )
+
+        final_result = deepseek_result
+
+        final_result["consensus_questions"] = sorted(
+            deepseek_questions.intersection(
+                minimax_questions
+            )
+        )
+
+        final_result["consensus_status"] = consensus_status
+
+        final_result["models_used"] = [
+            DEEPSEEK_MODEL,
+            MINIMAX_MODEL
+        ]
+
+        return final_result
+
+
+    # ============================================================
+    # ONLY DEEPSEEK SUCCEEDED
+    # ============================================================
+
+    if deepseek_result is not None:
+
+        print("DEEPSEEK ANALYSIS:")
+        print(deepseek_result)
+
+        deepseek_result["consensus_questions"] = []
+
+        deepseek_result["consensus_status"] = (
+            "DeepSeek analysis completed, but MiniMax "
+            "verification was unavailable."
+        )
+
+        deepseek_result["models_used"] = [
+            DEEPSEEK_MODEL
+        ]
+
+        return deepseek_result
+
+
+    # ============================================================
+    # ONLY MINIMAX SUCCEEDED
+    # ============================================================
+
+    print("MINIMAX ANALYSIS:")
+    print(minimax_result)
+
+    minimax_result["consensus_questions"] = []
+
+    minimax_result["consensus_status"] = (
+        "MiniMax analysis completed, but DeepSeek "
+        "verification was unavailable."
+    )
+
+    minimax_result["models_used"] = [
+        MINIMAX_MODEL
     ]
 
-    for field in required_fields:
-        if field not in result:
-            raise ValueError(f"Invalid response: {field} field is missing")
-
-    return result
+    return minimax_result
 
 
 def generate_quiz(subject, topic, student_level, language, difficulty, num_questions):
@@ -175,8 +353,8 @@ Requirements:
 - Avoid duplicate questions.
 """
 
-    response = client.chat.completions.create(
-        model="deepseek-ai/DeepSeek-V4-Flash-0731",
+    response = deepseek_client.chat.completions.create(
+        model=DEEPSEEK_MODEL,
         messages=[
             {
                 "role": "user",
