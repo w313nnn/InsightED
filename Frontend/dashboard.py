@@ -6,7 +6,7 @@ import requests
 # CONFIGURATION
 # ============================================================
 
-BACKEND_URL = "https://insighted-xmrz.onrender.com""
+BACKEND_URL = "https://insighted-xmrz.onrender.com"
 
 
 # ============================================================
