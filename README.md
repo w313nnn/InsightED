@@ -4,6 +4,16 @@ InsightED is an AI-powered educational platform designed to help teachers identi
 
 Unlike traditional quiz systems that mainly report marks and correct/incorrect answers, InsightED focuses on understanding **why students are making mistakes**. The system analyses student responses, identifies common misconceptions, summarizes class understanding, and provides recommended teaching interventions.
 
+## Live Demo
+
+### Teacher Dashboard
+
+**Try InsightED:** [InsightED Teacher Dashboard](https://insighted-ai-education.streamlit.app/)
+
+### Student Page
+
+**Try InsightED Student Page:** [InsightED Student Page](https://insighted-ai-education-student.streamlit.app/)
+
 The platform supports both teachers and students throughout the learning cycle:
 
 ```text
