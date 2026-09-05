@@ -4,6 +4,10 @@ InsightED is an AI-powered educational platform designed to help teachers identi
 
 Unlike traditional quiz systems that mainly report marks and correct/incorrect answers, InsightED focuses on understanding **why students are making mistakes**. The system analyses student responses, identifies common misconceptions, summarizes class understanding, and provides recommended teaching interventions.
 
+## Live Demo
+
+**Try InsightED:** [InsightED Live Demo](https://insighted-ai-education.streamlit.app/)
+
 The platform supports both teachers and students throughout the learning cycle:
 
 ```text
@@ -119,3 +123,14 @@ InsightED was developed by a four-member team, with each member responsible for 
 | **Teh Hui Min**    | **Teacher Dashboard** — Class Understanding, 🟢🟡🔴 understanding indicators, and AI Diagnosis display                                             |
 | **Chan Xiang Wei** | **Student Page** — Student quiz, personalized re-quiz, and learning improvement display                                                            |
 | **See Jia Yee**    | **Backend + Web3** — FastAPI backend, database, API development, and Learning Credential / Web3 integration                                        |
+
+```
+
+### My recommendation
+
+I would **not add more sections just for the sake of making the README longer**. For your current purpose, this is concise but still demonstrates the important technical contribution:
+
+**InsightED → live demo → educational flow → Gonka → multi-model AI → misconception diagnosis → team roles.**
+
+Before committing, just verify that the **model names/IDs and Gonka endpoint exactly match your actual code**.
+```
