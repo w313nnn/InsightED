@@ -37,6 +37,7 @@ def initialize_session_state():
         "has_unfinished_quiz": False,
         "has_pending_requiz": False,
         "student_page": "home",
+        "student_id": "",
     }
 
     for key, value in defaults.items():
@@ -139,14 +140,16 @@ def get_assigned_quizzes():
             initial_attempts = [
                 attempt
                 for attempt in attempts
-                if attempt.get("student_id") == "student_1"
+                if attempt.get("student_id")
+                == st.session_state.get("student_id")
                 and attempt.get("attempt_type") == "initial"
             ]
 
             requiz_attempts = [
                 attempt
                 for attempt in attempts
-                if attempt.get("student_id") == "student_1"
+                if attempt.get("student_id")
+                == st.session_state.get("student_id")
                 and attempt.get("attempt_type") == "requiz"
             ]
 
@@ -193,7 +196,6 @@ def select_assigned_quiz(quiz_data):
         questions
     )
 
-    # Keep selected quiz information
     st.session_state.topic = quiz.get(
         "topic",
         "General Knowledge",
@@ -244,7 +246,7 @@ def submit_student_answers(
         f"{BACKEND_URL}/student-answers",
         json={
             "quiz_id": st.session_state.quiz_id,
-            "student_id": "student_1",
+            "student_id": st.session_state.get("student_id"),
             "attempt_type": attempt_type,
             "student_answers": answers,
             "attempt_questions": attempt_questions,
@@ -699,10 +701,6 @@ def apply_custom_css():
         """
         <style>
 
-        /* =========================================================
-           DESIGN SYSTEM
-           ========================================================= */
-
         :root {
             --bg: #F5FBFE;
             --panel: #FFFFFF;
@@ -730,11 +728,6 @@ def apply_custom_css():
             --shadow: 0 18px 40px rgba(91, 146, 182, 0.12);
             --radius: 22px;
         }
-
-
-        /* =========================================================
-           GLOBAL PAGE
-           ========================================================= */
 
         html,
         body {
@@ -767,11 +760,6 @@ def apply_custom_css():
             max-width: 980px;
             margin: 0 auto;
         }
-
-
-        /* =========================================================
-           TOP HEADER
-           ========================================================= */
 
         .main-header {
             display: flex;
@@ -828,11 +816,6 @@ def apply_custom_css():
             box-shadow: 0 10px 24px rgba(94, 152, 189, 0.08);
         }
 
-
-        /* =========================================================
-           CARDS
-           ========================================================= */
-
         .dashboard-card,
         .page-card,
         .result-card,
@@ -847,11 +830,6 @@ def apply_custom_css():
 
             box-shadow: var(--shadow);
         }
-
-
-        /* =========================================================
-           SECTION TAG
-           ========================================================= */
 
         .section-tag {
             display: inline-block;
@@ -872,11 +850,6 @@ def apply_custom_css():
 
             line-height: 1.5;
         }
-
-
-        /* =========================================================
-           HERO TEXT
-           ========================================================= */
 
         .hero-title {
             font-size: clamp(2rem, 3vw, 3rem);
@@ -903,11 +876,6 @@ def apply_custom_css():
             line-height: 1.7;
             max-width: 600px;
         }
-
-
-        /* =========================================================
-           FEATURE / LEARNING CARDS
-           ========================================================= */
 
         .hero-grid {
             display: grid;
@@ -960,11 +928,6 @@ def apply_custom_css():
             line-height: 1.5;
         }
 
-
-        /* =========================================================
-           QUIZ HEADER
-           ========================================================= */
-
         .quiz-header {
             display: flex;
 
@@ -1005,11 +968,6 @@ def apply_custom_css():
 
             line-height: 1.5;
         }
-
-
-        /* =========================================================
-           QUIZ PROGRESS
-           ========================================================= */
 
         .progress-label {
             display: flex;
@@ -1072,11 +1030,6 @@ def apply_custom_css():
             border-radius: 999px;
         }
 
-
-        /* =========================================================
-           QUESTION
-           ========================================================= */
-
         .question-card {
             background: var(--panel);
 
@@ -1101,11 +1054,6 @@ def apply_custom_css():
 
             margin: 0 0 0.6rem 0;
         }
-
-
-        /* =========================================================
-           ANSWER OPTIONS
-           ========================================================= */
 
         .stRadio > div {
             background: transparent;
@@ -1188,11 +1136,6 @@ def apply_custom_css():
             margin: 0;
         }
 
-
-        /* =========================================================
-           RESULT SCREEN
-           ========================================================= */
-
         .result-card {
             padding: 1.45rem 1.3rem;
 
@@ -1224,11 +1167,6 @@ def apply_custom_css():
 
             line-height: 1.6;
         }
-
-
-        /* =========================================================
-           STATUS BADGES
-           ========================================================= */
 
         .badge-success,
         .badge-neutral,
@@ -1265,11 +1203,6 @@ def apply_custom_css():
             color: #7A4A00;
         }
 
-
-        /* =========================================================
-           REVIEW ITEMS
-           ========================================================= */
-
         .review-card {
             padding: 1.15rem 1.1rem;
 
@@ -1300,11 +1233,6 @@ def apply_custom_css():
             color: var(--text);
         }
 
-
-        /* =========================================================
-           LEARNING PROGRESS
-           ========================================================= */
-
         .progress-row {
             margin-top: 1rem;
 
@@ -1322,11 +1250,6 @@ def apply_custom_css():
 
             line-height: 1.5;
         }
-
-
-        /* =========================================================
-           ALL BUTTONS
-           ========================================================= */
 
         .stButton > button,
         div[data-testid="stFormSubmitButton"] button {
@@ -1418,11 +1341,6 @@ def apply_custom_css():
             color: #FFFFFF !important;
         }
 
-
-        /* =========================================================
-           ALERTS
-           ========================================================= */
-
         div[data-testid="stAlert"] {
             border-radius: 14px !important;
         }
@@ -1431,11 +1349,6 @@ def apply_custom_css():
         div[data-testid="stAlert"] span {
             color: #123047 !important;
         }
-
-
-        /* =========================================================
-           TEXT INPUTS
-           ========================================================= */
 
         .stTextInput input {
             background: #FFFFFF !important;
@@ -1466,11 +1379,6 @@ def apply_custom_css():
 
             font-weight: 600;
         }
-
-
-        /* =========================================================
-           SELECTBOX
-           ========================================================= */
 
         .stSelectbox div[data-baseweb="select"],
         .stSelectbox div[data-baseweb="select"] > div,
@@ -1509,11 +1417,6 @@ def apply_custom_css():
             color: #123047 !important;
         }
 
-
-        /* =========================================================
-           SLIDER
-           ========================================================= */
-
         .stSlider > div > div[data-testid="stKnob"] {
             background: var(--primary-strong);
         }
@@ -1521,11 +1424,6 @@ def apply_custom_css():
         .stSlider [data-testid="stTickBar"] {
             background: rgba(126, 200, 227, 0.18);
         }
-
-
-        /* =========================================================
-           QUIZ HISTORY METRICS
-           ========================================================= */
 
         .stMetric,
         div[data-testid="stMetric"] {
@@ -1588,11 +1486,6 @@ def apply_custom_css():
             overflow: visible !important;
         }
 
-
-        /* =========================================================
-           FORMS
-           ========================================================= */
-
         div[data-testid="stForm"] {
             background: var(--panel);
 
@@ -1609,19 +1502,9 @@ def apply_custom_css():
             gap: 0.7rem;
         }
 
-
-        /* =========================================================
-           VERTICAL SPACING
-           ========================================================= */
-
         div[data-testid="stVerticalBlock"] > div:has(> div > button) {
             gap: 0.6rem;
         }
-
-
-        /* =========================================================
-           EXPANDERS / HISTORY
-           ========================================================= */
 
         div[data-testid="stExpander"] {
             background: #FFFFFF;
@@ -1639,19 +1522,9 @@ def apply_custom_css():
             font-weight: 700;
         }
 
-
-        /* =========================================================
-           DIVIDER
-           ========================================================= */
-
         hr {
             border-color: var(--line) !important;
         }
-
-
-        /* =========================================================
-           RESPONSIVE
-           ========================================================= */
 
         @media (max-width: 768px) {
 
@@ -1697,7 +1570,6 @@ def render_learning_page():
         unsafe_allow_html=True,
     )
 
-    # Back button moved to the top
     if st.button(
         "← Back to Learning Portal",
         type="secondary",
@@ -1824,7 +1696,6 @@ def render_progress_page():
         unsafe_allow_html=True,
     )
 
-    # Back button moved to the top
     if st.button(
         "← Back to Learning Portal",
         type="secondary",
@@ -1978,10 +1849,6 @@ def render_history_page():
         unsafe_allow_html=True,
     )
 
-    # ============================================================
-    # LOAD QUIZ HISTORY
-    # ============================================================
-
     try:
 
         with st.spinner(
@@ -2032,23 +1899,11 @@ def render_history_page():
 
                 continue
 
-        # ========================================================
-        # CHECK WHETHER A QUIZ HAS BEEN SELECTED
-        # ========================================================
-
         selected_quiz_id = st.session_state.get(
             "history_selected_quiz_id"
         )
 
-        # ========================================================
-        # LEVEL 1 — QUIZ HISTORY LIST
-        # ========================================================
-
         if selected_quiz_id is None:
-
-            # ----------------------------------------------------
-            # PAGE HEADER
-            # ----------------------------------------------------
 
             st.markdown(
                 '<div class="section-tag">'
@@ -2074,19 +1929,11 @@ def render_history_page():
                 unsafe_allow_html=True,
             )
 
-            # ----------------------------------------------------
-            # NO QUIZZES
-            # ----------------------------------------------------
-
             if not histories:
 
                 st.info(
                     "No quizzes have been assigned yet."
                 )
-
-            # ----------------------------------------------------
-            # QUIZ LIST
-            # ----------------------------------------------------
 
             else:
 
@@ -2095,7 +1942,6 @@ def render_history_page():
                     "quiz(es) available.**"
                 )
 
-                # Newest quiz first
                 for history in reversed(histories):
 
                     quiz = history.get(
@@ -2109,10 +1955,6 @@ def render_history_page():
 
                     if quiz_id is None:
                         continue
-
-                    # ------------------------------------------------
-                    # Quiz information
-                    # ------------------------------------------------
 
                     topic = quiz.get(
                         "topic",
@@ -2144,20 +1986,12 @@ def render_history_page():
                         [],
                     )
 
-                    # ------------------------------------------------
-                    # Only this prototype student's attempts
-                    # ------------------------------------------------
-
                     student_attempts = [
                         attempt
                         for attempt in attempts
                         if attempt.get("student_id")
-                        in ("student_1", None)
+                        == st.session_state.get("student_id")
                     ]
-
-                    # ------------------------------------------------
-                    # Find initial attempts
-                    # ------------------------------------------------
 
                     initial_attempts = [
                         attempt
@@ -2166,11 +2000,6 @@ def render_history_page():
                             "attempt_type"
                         ) == "initial"
                     ]
-
-                    # ------------------------------------------------
-                    # Keep exactly ONE first attempt
-                    # The earliest initial attempt is used.
-                    # ------------------------------------------------
 
                     first_attempt = None
 
@@ -2185,10 +2014,6 @@ def render_history_page():
                             ),
                         )
 
-                    # ------------------------------------------------
-                    # Quiz card
-                    # ------------------------------------------------
-
                     st.divider()
 
                     st.subheader(
@@ -2201,10 +2026,6 @@ def render_history_page():
                         f"{difficulty} · "
                         f"{len(questions)} questions"
                     )
-
-                    # ------------------------------------------------
-                    # First Attempt summary
-                    # ------------------------------------------------
 
                     if first_attempt:
 
@@ -2238,10 +2059,6 @@ def render_history_page():
                             "**Not attempted yet.**"
                         )
 
-                    # ------------------------------------------------
-                    # View Details button
-                    # ------------------------------------------------
-
                     if st.button(
                         "View Details →",
                         key=f"history_view_{quiz_id}",
@@ -2253,10 +2070,6 @@ def render_history_page():
                         )
 
                         st.rerun()
-
-                # ====================================================
-                # BACK BUTTON — VERY BOTTOM OF QUIZ HISTORY
-                # ====================================================
 
                 st.write("")
                 st.write("")
@@ -2277,10 +2090,6 @@ def render_history_page():
 
                     st.rerun()
 
-        # ========================================================
-        # LEVEL 2 — SELECTED QUIZ DETAILS
-        # ========================================================
-
         else:
 
             selected_history = None
@@ -2299,10 +2108,6 @@ def render_history_page():
                     selected_history = history
 
                     break
-
-            # ----------------------------------------------------
-            # Selected quiz no longer exists
-            # ----------------------------------------------------
 
             if selected_history is None:
 
@@ -2358,20 +2163,12 @@ def render_history_page():
                 [],
             )
 
-            # ----------------------------------------------------
-            # Only this prototype student's attempts
-            # ----------------------------------------------------
-
             student_attempts = [
                 attempt
                 for attempt in attempts
                 if attempt.get("student_id")
-                in ("student_1", None)
+                == st.session_state.get("student_id")
             ]
-
-            # ----------------------------------------------------
-            # Initial attempts
-            # ----------------------------------------------------
 
             initial_attempts = [
                 attempt
@@ -2381,10 +2178,6 @@ def render_history_page():
                 ) == "initial"
             ]
 
-            # ----------------------------------------------------
-            # Re-quiz attempts
-            # ----------------------------------------------------
-
             requiz_attempts = [
                 attempt
                 for attempt in student_attempts
@@ -2392,10 +2185,6 @@ def render_history_page():
                     "attempt_type"
                 ) == "requiz"
             ]
-
-            # ----------------------------------------------------
-            # Keep only the earliest First Attempt
-            # ----------------------------------------------------
 
             first_attempt = None
 
@@ -2410,10 +2199,6 @@ def render_history_page():
                     ),
                 )
 
-            # ----------------------------------------------------
-            # Sort Re-Quizzes chronologically
-            # ----------------------------------------------------
-
             sorted_requizzes = sorted(
                 requiz_attempts,
                 key=lambda attempt:
@@ -2422,10 +2207,6 @@ def render_history_page():
                     "",
                 ),
             )
-
-            # ====================================================
-            # QUIZ DETAIL HEADER
-            # ====================================================
 
             st.markdown(
                 '<div class="section-tag">'
@@ -2451,10 +2232,6 @@ def render_history_page():
                 '</div>',
                 unsafe_allow_html=True,
             )
-
-            # ====================================================
-            # QUIZ INFORMATION
-            # ====================================================
 
             col1, col2, col3, col4 = st.columns(
                 [1, 1.5, 1, 0.8]
@@ -2493,10 +2270,6 @@ def render_history_page():
             )
 
             st.divider()
-
-            # ====================================================
-            # YOUR PROGRESS
-            # ====================================================
 
             st.markdown(
                 "### Your Progress"
@@ -2609,10 +2382,6 @@ def render_history_page():
                 st.info(
                     "You have not attempted this quiz yet."
                 )
-
-            # ====================================================
-            # RE-QUIZ PROGRESS
-            # ====================================================
 
             if sorted_requizzes:
 
@@ -2727,10 +2496,6 @@ def render_history_page():
                                 """
                             )
 
-            # ====================================================
-            # LEARNING PROGRESS
-            # ====================================================
-
             if first_attempt:
 
                 first_score = first_attempt.get(
@@ -2825,10 +2590,6 @@ def render_history_page():
                             "than your first attempt."
                         )
 
-            # ====================================================
-            # AI LEARNING FEEDBACK
-            # ====================================================
-
             analysis = selected_history.get(
                 "analysis"
             )
@@ -2886,10 +2647,6 @@ def render_history_page():
                     "No AI learning analysis is available "
                     "for this quiz yet."
                 )
-
-            # ====================================================
-            # BACK BUTTON — BOTTOM OF DETAIL PAGE
-            # ====================================================
 
             st.write("")
             st.write("")
@@ -2978,6 +2735,37 @@ def render_start_screen():
         unsafe_allow_html=True,
     )
 
+    # ============================================================
+    # STUDENT ID
+    # ============================================================
+
+    if not st.session_state.get("student_id"):
+
+        st.subheader("Student Information")
+
+        student_id = st.text_input(
+            "Enter your Student ID",
+            placeholder="e.g. student_1",
+            key="student_id_input",
+        ).strip()
+
+        if student_id:
+
+            st.session_state.student_id = student_id
+
+            st.rerun()
+
+        st.info(
+            "Please enter your Student ID to view your assigned quizzes."
+        )
+
+        st.markdown(
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
+        return
+
     try:
 
         with st.spinner(
@@ -3057,15 +2845,6 @@ def render_start_screen():
                     )
                 )
 
-                # ====================================================
-                # QUIZ CARD
-                #
-                # IMPORTANT:
-                # Do not wrap Streamlit widgets inside a raw HTML
-                # question-card div. This caused the strange blank
-                # white space above quiz titles.
-                # ====================================================
-
                 st.markdown(
                     f"""
                     <div class="question-title">
@@ -3081,10 +2860,6 @@ def render_start_screen():
                     f"{difficulty} · "
                     f"{len(questions)} questions"
                 )
-
-                # ====================================================
-                # QUIZ STATUS
-                # ====================================================
 
                 if initial_attempts:
 
@@ -3193,8 +2968,6 @@ def render_start_screen():
                                 quiz_id
                             )
 
-                            # Keep the original quiz metadata
-                            # when starting the Re-Quiz.
                             st.session_state.topic = (
                                 quiz.get(
                                     "topic",
@@ -3572,10 +3345,6 @@ def render_quiz_screen():
         st.session_state.question_index
     )
 
-    # ================================================================
-    # FIRST QUESTION
-    # ================================================================
-
     if question_index == 0:
 
         if st.button(
@@ -3591,10 +3360,6 @@ def render_quiz_screen():
             st.session_state.question_index += 1
 
             st.rerun()
-
-    # ================================================================
-    # LAST QUESTION
-    # ================================================================
 
     elif (
         question_index
@@ -3698,10 +3463,6 @@ def render_quiz_screen():
                 st.session_state.quiz_submitted = True
 
                 st.rerun()
-
-    # ================================================================
-    # MIDDLE QUESTIONS
-    # ================================================================
 
     else:
 
