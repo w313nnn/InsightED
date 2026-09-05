@@ -14,7 +14,7 @@ BACKEND_URL = "https://insighted-xmrz.onrender.com"
 # ============================================================
 
 st.set_page_config(
-    page_title="Education AI",
+    page_title="InsightED",
     page_icon="🎓",
     layout="wide"
 )
@@ -24,7 +24,7 @@ st.set_page_config(
 # TEACHER NAVIGATION
 # ============================================================
 
-st.sidebar.title("🎓 Education AI")
+st.sidebar.title("🎓 InsightED")
 
 page = st.sidebar.radio(
     "Teacher Menu",
@@ -56,7 +56,7 @@ if "selected_quiz_id" not in st.session_state:
 # PAGE HEADER
 # ============================================================
 
-st.title("🎓 Education AI")
+st.title("🎓 InsightED")
 
 st.caption(
     "AI-powered classroom misconception diagnosis"
@@ -643,7 +643,7 @@ if page == "Overview":
     st.header("📊 Overview")
 
     st.write(
-        "Welcome to Education AI. "
+        "Welcome to InsightED. "
         "Monitor overall class understanding, "
         "identify students who need support, "
         "and track learning progress."
@@ -2458,6 +2458,6 @@ else:
 st.divider()
 
 st.caption(
-    "Education AI • Supporting teachers with "
+    "InsightED • Supporting teachers with "
     "AI-powered learning diagnosis"
 )
