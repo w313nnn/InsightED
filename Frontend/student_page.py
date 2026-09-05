@@ -355,29 +355,55 @@ def apply_custom_css():
     st.markdown(
         """
         <style>
+
+        /* =========================================================
+           DESIGN SYSTEM
+           ========================================================= */
+
         :root {
             --bg: #F5FBFE;
             --panel: #FFFFFF;
             --panel-soft: #EAF7FC;
             --line: #DDEFF7;
+
             --text: #123047;
             --muted: #64748B;
+
             --primary: #7EC8E3;
             --primary-strong: #5BAFD1;
+            --button-blue: #4A9FC2;
+            --button-hover: #3688AD;
             --primary-soft: rgba(126, 200, 227, 0.14);
-            --secondary: #A7DDF2;
+
             --success: #22C55E;
             --success-soft: rgba(34, 197, 94, 0.10);
+
             --danger: #EF4444;
             --danger-soft: rgba(239, 68, 68, 0.10);
+
+            --warning: #B45309;
+            --warning-soft: #FFF8D6;
+
             --shadow: 0 18px 40px rgba(91, 146, 182, 0.12);
             --radius: 22px;
         }
 
-        html, body {
+
+        /* =========================================================
+           GLOBAL PAGE
+           ========================================================= */
+
+        html,
+        body {
             background: var(--bg);
             color: var(--text);
             font-family: "Segoe UI", sans-serif;
+        }
+
+        .stApp {
+            background: var(--bg);
+            color: var(--text);
+            margin-top: 0;
         }
 
         header[data-testid="stHeader"] {
@@ -388,24 +414,30 @@ def apply_custom_css():
             display: none;
         }
 
-        .stApp {
-            background: var(--bg);
-            color: var(--text);
-            margin-top: 0;
-        }
-
         .block-container {
             max-width: 1180px;
             padding-top: 0.25rem;
             padding-bottom: 2rem;
         }
 
+        .page-shell {
+            max-width: 980px;
+            margin: 0 auto;
+        }
+
+
+        /* =========================================================
+           TOP HEADER
+           ========================================================= */
+
         .main-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
+
             padding: 0.5rem 0 1.2rem 0;
             margin-bottom: 36px;
+
             border-bottom: 1px solid rgba(123, 160, 188, 0.18);
         }
 
@@ -420,6 +452,7 @@ def apply_custom_css():
             font-weight: 800;
             line-height: 1.12;
             letter-spacing: -0.05em;
+
             color: var(--text);
             margin: 0;
         }
@@ -435,22 +468,27 @@ def apply_custom_css():
             display: inline-flex;
             align-items: center;
             justify-content: center;
+
             background: var(--panel);
             color: var(--primary-strong);
+
             border: 1px solid rgba(99, 164, 197, 0.25);
             border-radius: 999px;
+
             padding: 0.62rem 1rem;
+
             font-size: 0.74rem;
             font-weight: 800;
             letter-spacing: 0.08em;
             text-transform: uppercase;
+
             box-shadow: 0 10px 24px rgba(94, 152, 189, 0.08);
         }
 
-        .page-shell {
-            max-width: 980px;
-            margin: 0 auto;
-        }
+
+        /* =========================================================
+           CARDS
+           ========================================================= */
 
         .dashboard-card,
         .page-card,
@@ -460,31 +498,52 @@ def apply_custom_css():
         .hero-card,
         .feature-tile {
             background: var(--panel);
+
             border: 1px solid rgba(125, 173, 201, 0.18);
             border-radius: var(--radius);
+
             box-shadow: var(--shadow);
         }
 
+
+        /* =========================================================
+           SECTION TAG
+           ========================================================= */
+
         .section-tag {
             display: inline-block;
+
             font-size: 0.74rem;
             font-weight: 800;
+
             letter-spacing: 0.12em;
             text-transform: uppercase;
+
             color: var(--primary-strong);
             background: var(--primary-soft);
+
             border-radius: 999px;
+
             padding: 0.42rem 0.8rem;
             margin-bottom: 0.8rem;
+
             line-height: 1.5;
         }
+
+
+        /* =========================================================
+           HERO TEXT
+           ========================================================= */
 
         .hero-title {
             font-size: clamp(2rem, 3vw, 3rem);
             font-weight: 800;
+
             letter-spacing: -0.05em;
             line-height: 1.18;
+
             color: var(--text);
+
             margin: 0 0 0.55rem 0;
         }
 
@@ -495,101 +554,154 @@ def apply_custom_css():
         .hero-subtitle {
             font-size: 1rem;
             color: var(--muted);
+
             margin: 0 0 1.05rem 0;
+
             line-height: 1.7;
-            max-width: 560px;
+            max-width: 600px;
         }
+
+
+        /* =========================================================
+           FEATURE / LEARNING CARDS
+           ========================================================= */
 
         .hero-grid {
             display: grid;
             grid-template-columns: 1.25fr 0.75fr;
+
             gap: 1.35rem;
+
             align-items: stretch;
+
             margin-top: 0.65rem;
         }
 
         .feature-row {
             display: grid;
+
             grid-template-columns: repeat(3, minmax(0, 1fr));
+
             gap: 0.9rem;
             margin-top: 1rem;
         }
 
         .feature-tile {
-            padding: 0.8rem 0.9rem;
+            padding: 0.95rem 1rem;
+
             text-align: center;
+
             background: var(--panel);
+
             border-radius: 18px;
         }
 
         .feature-tile strong {
             display: block;
+
             color: var(--text);
+
             font-size: 0.9rem;
             font-weight: 800;
-            margin-bottom: 0.2rem;
+
+            margin-bottom: 0.25rem;
+
             line-height: 1.5;
         }
 
         .feature-tile span {
             color: var(--muted);
+
             font-size: 0.78rem;
+
             line-height: 1.5;
         }
 
+
+        /* =========================================================
+           QUIZ HEADER
+           ========================================================= */
+
         .quiz-header {
             display: flex;
+
             justify-content: space-between;
             align-items: center;
+
             gap: 1rem;
+
             margin-bottom: 1rem;
         }
 
         .quiz-badge {
             display: inline-flex;
             align-items: center;
+
             background: var(--primary-soft);
             color: var(--primary-strong);
+
             border: 1px solid rgba(91, 172, 209, 0.2);
             border-radius: 999px;
+
             padding: 0.42rem 0.8rem;
+
             font-size: 0.72rem;
             font-weight: 800;
+
             letter-spacing: 0.06em;
             text-transform: uppercase;
+
             line-height: 1.5;
         }
 
         .question-count {
             font-size: 0.92rem;
             color: var(--muted);
+
             font-weight: 700;
+
             line-height: 1.5;
         }
 
+
+        /* =========================================================
+           QUIZ PROGRESS
+           ========================================================= */
+
         .progress-label {
             display: flex;
+
             justify-content: space-between;
             align-items: center;
+
             margin-bottom: 0.5rem;
+
             color: var(--muted);
+
             font-size: 0.85rem;
             font-weight: 600;
+
             line-height: 1.5;
         }
 
         .manual-progress {
             width: 100%;
             height: 0.75rem;
+
             border-radius: 999px;
+
             background: rgba(126, 200, 227, 0.18);
+
             overflow: hidden;
-            margin-bottom: 0.65rem;
+
+            margin-bottom: 0.8rem;
         }
 
         .manual-progress-fill {
             height: 100%;
+
             border-radius: 999px;
+
             background: linear-gradient(
                 90deg,
                 var(--primary) 0%,
@@ -599,8 +711,11 @@ def apply_custom_css():
 
         .stProgress > div > div {
             background: rgba(126, 200, 227, 0.18);
+
             border-radius: 999px;
+
             height: 0.72rem;
+
             overflow: hidden;
         }
 
@@ -610,142 +725,231 @@ def apply_custom_css():
                 var(--primary) 0%,
                 var(--primary-strong) 100%
             );
+
             border-radius: 999px;
         }
 
+
+        /* =========================================================
+           QUESTION
+           ========================================================= */
+
         .question-card {
             background: var(--panel);
+
             border: 1px solid rgba(125, 173, 201, 0.18);
             border-radius: 20px;
+
             padding: 1.4rem 1.2rem;
+
             box-shadow: var(--shadow);
+
             margin-top: 0.8rem;
         }
 
         .question-title {
             font-size: clamp(1.2rem, 2vw, 1.7rem);
+
             font-weight: 700;
+
             line-height: 1.6;
+
             color: var(--text);
-            margin: 0;
+
+            margin: 0 0 0.6rem 0;
         }
+
+
+        /* =========================================================
+           ANSWER OPTIONS
+           Fix colour and contrast
+           ========================================================= */
 
         .stRadio > div {
             background: transparent;
+
             border: none;
+
             padding: 0;
         }
 
         .stRadio > div[role="radiogroup"] {
             display: grid;
+
             gap: 0.72rem;
-            margin-top: 1.1rem;
+
+            margin-top: 1rem;
         }
 
         .stRadio label {
             display: flex;
+
             align-items: center;
+
             gap: 0.85rem;
-            border: 1px solid rgba(125, 173, 201, 0.24);
-            border-radius: 16px;
-            background: linear-gradient(
-                180deg,
-                #ffffff 0%,
-                #f6fbff 100%
-            );
-            padding: 0.9rem 1rem;
+
+            border: 1px solid #CFE3EC;
+
+            border-radius: 14px;
+
+            background: #FFFFFF !important;
+
+            padding: 0.95rem 1rem;
+
             margin: 0;
-            color: #1f2937 !important;
+
+            color: #123047 !important;
+
             line-height: 1.6;
+
             transition: all 0.2s ease;
+
             cursor: pointer;
         }
 
+        /* Force answer-option text to remain readable */
         .stRadio label p,
         .stRadio label span,
         .stRadio label div {
-            color: #1f2937 !important;
+            color: #123047 !important;
         }
 
         .stRadio label:hover {
-            border-color: rgba(91, 172, 209, 0.6);
-            box-shadow: 0 12px 22px rgba(91, 172, 209, 0.08);
+            background: #F1FAFD !important;
+
+            border-color: #7EC8E3 !important;
+
+            box-shadow: 0 7px 18px rgba(91, 172, 209, 0.10);
         }
 
+        /* Selected answer */
         .stRadio label:has(input:checked) {
-            background: var(--primary-soft);
-            border-color: rgba(91, 172, 209, 0.82);
-            box-shadow: 0 12px 24px rgba(91, 172, 209, 0.12);
+            background: #D9F1FA !important;
+
+            border-color: #5BAFD1 !important;
+
+            box-shadow: 0 8px 20px rgba(91, 172, 209, 0.14);
+        }
+
+        .stRadio label:has(input:checked) p,
+        .stRadio label:has(input:checked) span,
+        .stRadio label:has(input:checked) div {
+            color: #123047 !important;
+
+            font-weight: 700;
         }
 
         .stRadio input {
-            accent-color: var(--primary-strong);
+            accent-color: #5BAFD1;
+
             width: 1.15rem;
             height: 1.15rem;
+
             margin: 0;
         }
 
+
+        /* =========================================================
+           RESULT SCREEN
+           ========================================================= */
+
         .result-card {
             padding: 1.45rem 1.3rem;
+
             margin-bottom: 1rem;
         }
 
         .score-display {
             font-size: clamp(2.6rem, 4vw, 4.1rem);
+
             font-weight: 800;
+
             letter-spacing: -0.06em;
+
             color: var(--primary-strong);
+
             line-height: 1.08;
+
             margin: 0.3rem 0 0.5rem 0;
         }
 
         .score-subtitle {
             font-size: 1.05rem;
+
             font-weight: 700;
+
             color: var(--text);
+
             margin-bottom: 0.8rem;
+
             line-height: 1.6;
         }
+
+
+        /* =========================================================
+           STATUS BADGES
+           ========================================================= */
 
         .badge-success,
         .badge-neutral,
         .badge-warning {
             display: inline-flex;
+
             align-items: center;
+
             padding: 0.48rem 0.8rem;
+
             border-radius: 999px;
+
             font-size: 0.8rem;
             font-weight: 700;
+
             line-height: 1.5;
         }
 
         .badge-success {
             background: var(--success-soft);
-            color: var(--success);
+
+            color: #15803D;
         }
 
         .badge-neutral {
             background: var(--primary-soft);
-            color: var(--primary-strong);
+
+            color: #327A9A;
         }
 
         .badge-warning {
-            background: rgba(245, 158, 11, 0.12);
-            color: #B45309;
+            background: #FFF3CD;
+
+            color: #7A4A00;
         }
+
+
+        /* =========================================================
+           REVIEW ITEMS
+           ========================================================= */
 
         .review-card {
             padding: 1.15rem 1.1rem;
+
             margin-top: 0.9rem;
         }
 
         .review-item {
-            background: #F9FBFD;
-            border: 1px solid rgba(125, 173, 201, 0.18);
+            background: #FFFFFF;
+
+            border: 1px solid rgba(125, 173, 201, 0.22);
+
             border-radius: 14px;
-            padding: 0.9rem 1rem;
+
+            padding: 1rem;
+
             margin-bottom: 0.8rem;
-            line-height: 1.6;
+
+            line-height: 1.65;
+
+            color: var(--text);
         }
 
         .review-item:last-child {
@@ -756,117 +960,122 @@ def apply_custom_css():
             color: var(--text);
         }
 
+
+        /* =========================================================
+           LEARNING PROGRESS
+           ========================================================= */
+
         .progress-row {
             margin-top: 1rem;
+
             display: grid;
+
             gap: 0.7rem;
         }
 
         .comparison-inline {
             font-size: 1.1rem;
+
             font-weight: 700;
+
             color: var(--text);
+
             line-height: 1.5;
         }
 
 
         /* =========================================================
            ALL BUTTONS
-           Light blue background + white text
+           Same light blue visual style
            ========================================================= */
 
-        .stButton > button {
+        .stButton > button,
+        div[data-testid="stFormSubmitButton"] button {
             border-radius: 12px !important;
+
             border: 1px solid #4A9FC2 !important;
+
+            background: #4A9FC2 !important;
+            background-color: #4A9FC2 !important;
+            background-image: none !important;
+
+            color: #FFFFFF !important;
+
             font-weight: 800 !important;
+
             padding: 0.8rem 1.15rem !important;
+
             min-height: 3rem !important;
+
             font-size: 1rem !important;
+
             transition: all 0.2s ease !important;
+
             box-shadow: none !important;
         }
 
-
-        /* =========================================================
-           PRIMARY BUTTONS
-           Generate Quiz / Continue / Next / Submit / Re-Quiz
-           ========================================================= */
-
+        /* Primary buttons */
         .stButton > button[kind="primary"],
         .stButton > button[data-testid="baseButton-primary"],
         div[data-testid="stFormSubmitButton"] button {
-            background-color: #4A9FC2 !important;
             background: #4A9FC2 !important;
-            background-image: none !important;
+
             color: #FFFFFF !important;
+
             border-color: #4A9FC2 !important;
         }
 
+        /* Secondary buttons */
+        .stButton > button[kind="secondary"],
+        .stButton > button[data-testid="baseButton-secondary"] {
+            background: #4A9FC2 !important;
+
+            color: #FFFFFF !important;
+
+            border-color: #4A9FC2 !important;
+        }
+
+        /* Force text inside ALL buttons to white */
+        .stButton > button *,
         .stButton > button[kind="primary"] *,
+        .stButton > button[kind="secondary"] *,
         .stButton > button[data-testid="baseButton-primary"] *,
+        .stButton > button[data-testid="baseButton-secondary"] *,
         div[data-testid="stFormSubmitButton"] button * {
             color: #FFFFFF !important;
         }
 
-
-        /* =========================================================
-           SECONDARY BUTTONS
-           Previous / Save & Exit / Start New Quiz
-           ========================================================= */
-
-        .stButton > button[kind="secondary"],
-        .stButton > button[data-testid="baseButton-secondary"] {
-            background-color: #4A9FC2 !important;
-            background: #4A9FC2 !important;
-            background-image: none !important;
-            color: #FFFFFF !important;
-            border-color: #4A9FC2 !important;
-        }
-
-        .stButton > button[kind="secondary"] *,
-        .stButton > button[data-testid="baseButton-secondary"] * {
-            color: #FFFFFF !important;
-        }
-
-
-        /* =========================================================
-           BUTTON HOVER
-           ========================================================= */
-
+        /* Hover */
         .stButton > button:hover,
         .stButton > button[kind="primary"]:hover,
         .stButton > button[kind="secondary"]:hover,
-        .stButton > button[data-testid="baseButton-primary"]:hover,
-        .stButton > button[data-testid="baseButton-secondary"]:hover,
         div[data-testid="stFormSubmitButton"] button:hover {
-            background-color: #3688AD !important;
             background: #3688AD !important;
-            background-image: none !important;
-            color: #FFFFFF !important;
+
+            background-color: #3688AD !important;
+
             border-color: #3688AD !important;
+
+            color: #FFFFFF !important;
+
             transform: translateY(-1px);
         }
 
-        .stButton > button:hover *,
-        div[data-testid="stFormSubmitButton"] button:hover * {
-            color: #FFFFFF !important;
-        }
-
-
-        /* =========================================================
-           DISABLED BUTTONS
-           Still light blue, but visually disabled
-           ========================================================= */
-
+        /* Disabled buttons */
         .stButton > button:disabled,
         div[data-testid="stFormSubmitButton"] button:disabled {
-            background-color: #B7DCE9 !important;
             background: #B7DCE9 !important;
-            background-image: none !important;
-            color: #FFFFFF !important;
+
+            background-color: #B7DCE9 !important;
+
             border-color: #B7DCE9 !important;
-            opacity: 0.75 !important;
+
+            color: #FFFFFF !important;
+
+            opacity: 0.72 !important;
+
             cursor: not-allowed !important;
+
             transform: none !important;
         }
 
@@ -877,29 +1086,72 @@ def apply_custom_css():
 
 
         /* =========================================================
-           WARNING / ALERT TEXT
-           Makes yellow warning box readable
+           ALERTS
+           Fix warning / info readability
            ========================================================= */
+
+        div[data-testid="stAlert"] {
+            border-radius: 14px !important;
+        }
 
         div[data-testid="stAlert"] p,
         div[data-testid="stAlert"] span {
-            color: #5B4A00 !important;
+            color: #123047 !important;
         }
 
 
         /* =========================================================
-           DIFFICULTY DROPDOWN
-           Easy / Medium / Hard
+           TEXT INPUTS
+           ========================================================= */
+
+        .stTextInput input {
+            background: #FFFFFF !important;
+
+            color: #123047 !important;
+
+            border: 1px solid #CFE3EC !important;
+
+            border-radius: 12px !important;
+
+            min-height: 3rem;
+        }
+
+        .stTextInput input:focus {
+            border-color: #5BAFD1 !important;
+
+            box-shadow:
+                0 0 0 3px rgba(126, 200, 227, 0.18) !important;
+        }
+
+        .stTextInput label,
+        .stSelectbox label {
+            line-height: 1.6;
+
+            margin-bottom: 0.45rem;
+
+            color: var(--text) !important;
+
+            font-weight: 600;
+        }
+
+
+        /* =========================================================
+           SELECTBOX
            ========================================================= */
 
         .stSelectbox div[data-baseweb="select"],
         .stSelectbox div[data-baseweb="select"] > div,
         .stSelectbox div[data-baseweb="select"] [role="combobox"] {
-            background-color: #D9F1FA !important;
             background: #D9F1FA !important;
-            background-image: none !important;
+
+            background-color: #D9F1FA !important;
+
             color: #123047 !important;
+
             border-color: #A7DDF2 !important;
+
+            border-radius: 12px !important;
+
             box-shadow: none !important;
         }
 
@@ -908,37 +1160,26 @@ def apply_custom_css():
             color: #123047 !important;
         }
 
-
-        /* Dropdown menu */
-
         div[data-baseweb="popover"] {
-            background-color: #FFFFFF !important;
             background: #FFFFFF !important;
         }
 
         div[data-baseweb="popover"] li {
-            background-color: #FFFFFF !important;
+            background: #FFFFFF !important;
+
             color: #123047 !important;
         }
 
         div[data-baseweb="popover"] li:hover {
-            background-color: #D9F1FA !important;
+            background: #D9F1FA !important;
+
             color: #123047 !important;
         }
 
-        .stTextInput label,
-        .stSelectbox label {
-            line-height: 1.6;
-            margin-bottom: 0.45rem;
-            color: var(--text);
-            font-weight: 600;
-        }
 
-        .stTextInput > div > div > input:focus,
-        .stSelectbox > div > div > select:focus {
-            border-color: rgba(91, 172, 209, 0.8);
-            box-shadow: 0 0 0 3px rgba(126, 200, 227, 0.18);
-        }
+        /* =========================================================
+           SLIDER
+           ========================================================= */
 
         .stSlider > div > div[data-testid="stKnob"] {
             background: var(--primary-strong);
@@ -948,37 +1189,90 @@ def apply_custom_css():
             background: rgba(126, 200, 227, 0.18);
         }
 
-        .stMetric {
+
+        /* =========================================================
+           QUIZ HISTORY METRICS
+           FIX "UPPER SECONDARY" TRUNCATION
+           ========================================================= */
+
+        .stMetric,
+        div[data-testid="stMetric"] {
             background: var(--panel-soft);
+
             border: 1px solid rgba(125, 173, 201, 0.18);
+
             border-radius: 16px;
+
             padding: 1rem;
+
+            min-height: 105px;
+
             line-height: 1.5;
+
+            overflow: visible !important;
         }
 
+        /* Metric labels */
         .stMetric [data-testid="stMetricLabel"],
         .stMetric [data-testid="stMetricLabel"] p,
         .stMetric [data-testid="stMetricLabel"] div,
         .stMetric [data-testid="stMetricLabel"] span {
             color: var(--text) !important;
+
             font-weight: 700 !important;
+
+            white-space: normal !important;
+
+            overflow: visible !important;
+
+            text-overflow: unset !important;
         }
 
-        .stMetric [data-testid="stMetricValue"] {
-            color: var(--text);
-            font-weight: 800;
-            line-height: 1.4;
+        /* Metric values */
+        .stMetric [data-testid="stMetricValue"],
+        div[data-testid="stMetricValue"] {
+            color: var(--text) !important;
+
+            font-weight: 800 !important;
+
+            line-height: 1.25 !important;
+
+            white-space: normal !important;
+
+            overflow: visible !important;
+
+            text-overflow: unset !important;
+
+            word-break: normal !important;
+
+            overflow-wrap: anywhere !important;
+
+            font-size: clamp(
+                1.25rem,
+                2vw,
+                1.75rem
+            ) !important;
         }
 
-        div[data-testid="stVerticalBlock"] > div:has(> div > button) {
-            gap: 0.6rem;
+        /* Prevent Streamlit inner metric wrapper from clipping text */
+        div[data-testid="stMetric"] > div {
+            overflow: visible !important;
         }
+
+
+        /* =========================================================
+           FORMS
+           ========================================================= */
 
         div[data-testid="stForm"] {
             background: var(--panel);
+
             border: 1px solid rgba(125, 173, 201, 0.18);
+
             border-radius: 22px;
+
             padding: 1.2rem;
+
             box-shadow: var(--shadow);
         }
 
@@ -986,10 +1280,57 @@ def apply_custom_css():
             gap: 0.7rem;
         }
 
+
+        /* =========================================================
+           VERTICAL SPACING
+           ========================================================= */
+
+        div[data-testid="stVerticalBlock"] > div:has(> div > button) {
+            gap: 0.6rem;
+        }
+
+
+        /* =========================================================
+           EXPANDERS / HISTORY
+           ========================================================= */
+
+        div[data-testid="stExpander"] {
+            background: #FFFFFF;
+
+            border: 1px solid rgba(125, 173, 201, 0.20);
+
+            border-radius: 14px;
+
+            overflow: hidden;
+        }
+
+        div[data-testid="stExpander"] summary {
+            color: var(--text) !important;
+
+            font-weight: 700;
+        }
+
+
+        /* =========================================================
+           DIVIDER
+           ========================================================= */
+
+        hr {
+            border-color: var(--line) !important;
+        }
+
+
+        /* =========================================================
+           RESPONSIVE
+           ========================================================= */
+
         @media (max-width: 768px) {
+
             .main-header {
                 flex-direction: column;
+
                 align-items: flex-start;
+
                 gap: 0.8rem;
             }
 
@@ -1000,14 +1341,24 @@ def apply_custom_css():
 
             .quiz-header {
                 flex-direction: column;
+
                 align-items: flex-start;
             }
+
+            .hero-title {
+                font-size: 2rem;
+            }
+
+            .block-container {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
         }
+
         </style>
         """,
         unsafe_allow_html=True,
     )
-
 
 def render_learning_page():
     st.markdown('<div class="page-shell">', unsafe_allow_html=True)
